@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.13.6/.schema/devbox.schema.json",
+  "packages": [
+    "python-full@3.11.10",
+    "pipenv@2024.2.0",
+  ],
+  "shell": {
+    "scripts": {
+      "k8s": [
+        "devbox run pipenv run fastapi run"
+    ],
+      "dev": [
+        "echo 'To install packages run: pipenv install'",
+        "echo 'To start the app run: fastapi dev'",
+        "devbox run pipenv shell"
+      ]
+    }
+  }
+}
