@@ -15,7 +15,11 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 
 
-app = FastAPI()
+app = FastAPI(
+    title="Tools API",
+    description="Various API endpoints to help you speed up your development and testing workflows",
+    version=os.getenv("VERSION", "unknown")
+)
 
 @app.get("/", include_in_schema=False)
 async def root():
@@ -59,7 +63,7 @@ async def nuke_aws_captain_account(request: AwsNukeAccountRequest):
     """
      Submit the AWS account name you want to nuke (e.g. glueops-captain-foobar)
     """
-    return github.nuke_aws_account_workflow(AwsNukeAccountRequest.aws_sub_account_name)
+    return github.nuke_aws_account_workflow(request.aws_sub_account_name)
 
 @app.delete("/v1/nuke-captain-domain-data", response_class=PlainTextResponse)
 async def nuke_captain_domain_data(request: CaptainDomainNukeDataAndBackupsRequest):
@@ -70,7 +74,7 @@ async def nuke_captain_domain_data(request: CaptainDomainNukeDataAndBackupsReque
 
      Note: this may not delete things like Loki/Thanos/Tempo data as that may be managed outside of AWS.
     """
-    return github.nuke_aws_account_workflow(CaptainDomainNukeDataAndBackupsRequest.captain_domain)
+    return github.nuke_aws_account_workflow(request.captain_domain)
 
 @app.post("/v1/chisel", response_class=PlainTextResponse, include_in_schema=False)
 async def create_chisel_nodes(request: CreateLightsailRequest):
