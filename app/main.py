@@ -99,3 +99,12 @@ async def health():
         dict: health status
     """
     return {"status": "healthy"}
+
+
+@app.get("/version")
+async def version():
+    return {
+        "version": os.getenv("VERSION", "unknown"),
+        "commit_sha": os.getenv("COMMIT_SHA", "unknown"),
+        "build_timestamp": os.getenv("BUILD_TIMESTAMP", "unknown")
+    }
