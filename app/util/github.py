@@ -7,7 +7,8 @@ def call_github_workflow(github_dispatch_url: str, workflow_inputs: dict = None)
     Returns:
         int: status code
     """
-    headers = {"Accept": "application/vnd.github+json", "Authorization": f"Bearer {os.getenv("GITHUB_TOKEN")}", "X-GitHub-Api-Version": "2022-11-28"}
+    github_token = os.getenv("GITHUB_TOKEN")
+    headers = {"Accept": "application/vnd.github+json", "Authorization": f"Bearer {github_token}", "X-GitHub-Api-Version": "2022-11-28"}
     payload = {"ref": "refs/heads/main"}
     
     if workflow_inputs:
