@@ -17,7 +17,7 @@ logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 
 app = FastAPI(
     title="Tools API",
-    description="Various API endpoints to help you speed up your development and testing workflows",
+    description="Various APIs to help you speed up your development and testing.",
     version=os.getenv("VERSION", "unknown")
 )
 
@@ -74,7 +74,7 @@ async def nuke_captain_domain_data(request: CaptainDomainNukeDataAndBackupsReque
 
      Note: this may not delete things like Loki/Thanos/Tempo data as that may be managed outside of AWS.
     """
-    return github.nuke_aws_account_workflow(request.captain_domain)
+    return github.nuke_captain_domain_data_and_backups(request.captain_domain)
 
 @app.post("/v1/chisel", response_class=PlainTextResponse, include_in_schema=False)
 async def create_chisel_nodes(request: CreateLightsailRequest):
