@@ -42,9 +42,10 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-@app.post("/v1/storage-buckets", response_class=PlainTextResponse, include_in_schema=False)
+@app.post("/v1/storage-buckets", response_class=PlainTextResponse)
 async def hello(request: StorageBucketsRequest):
     """
+        Note: this can be a DESTRUCTIVE operation
         For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.
     """
     return storage.create_all_buckets(request.captain_domain)
