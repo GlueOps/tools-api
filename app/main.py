@@ -86,7 +86,7 @@ async def delete_chisel_nodes(request: DeleteLightsailRequest):
     return JSONResponse(status_code=200, content={"message": response})
 
 
-@app.get("/health")
+@app.get("/health", include_in_schema=False)
 async def health():
     """health check
 
