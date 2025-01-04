@@ -5,8 +5,8 @@ from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, CreateLightsailRequest, AwsCredentialsRequest, DeleteLightsailRequest, StorageBucketsRequest
-from util import storage, aws_lightsail, aws_setup_test_account_credentials
+from schemas.schemas import Message, CreateLightsailRequest, AwsCredentialsRequest, DeleteLightsailRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest
+from util import storage, aws_lightsail, aws_setup_test_account_credentials, github
 from fastapi.responses import RedirectResponse
 
 
@@ -45,7 +45,7 @@ async def hello(request: StorageBucketsRequest):
     return storage.create_all_buckets(request.captain_domain)
 
 
-@app.post("/v1/aws-test-account-credentials", response_class=PlainTextResponse)
+@app.post("/v1/setup-aws-account-credentials", response_class=PlainTextResponse)
 async def create_credentials_for_aws_captain_account(request: AwsCredentialsRequest):
     """
     If you are testing in AWS/EKS you will need an AWS account to test with. This request will provide you with admin level credentials to the sub account you specify.
@@ -54,18 +54,23 @@ async def create_credentials_for_aws_captain_account(request: AwsCredentialsRequ
     return aws_setup_test_account_credentials.create_admin_credentials_within_captain_account(request.aws_sub_account_name)
 
 
-@app.get("/v1/nuke", response_class=PlainTextResponse)
-async def nuke_or_cleanup_environments():
+@app.get("/v1/nuke-aws-captain-account", response_class=PlainTextResponse)
+async def nuke_aws_captain_account(request: AwsNukeAccountRequest):
     """
-     Provides links to Github Actions so that you can nuke your Captain AWS account or reset your captain_domain/environment
+     Submit the account name you want to nuke (e.g. glueops-captain-foobar)
     """
-    return f"""
-     To nuke the AWS account (kubernetes/etc.) run the job here:
-     https://github.com/internal-GlueOps/gha-aws-cleanup/actions/workflows/aws-nuke-account.yml
+    return github.nuke_aws_account_workflow(AwsNukeAccountRequest.aws_sub_account_name)
 
-     To nuke the tenant/captain domain data and any backups run the job here: 
-     https://github.com/internal-GlueOps/gha-aws-cleanup/actions/workflows/nuke-captain-domain-data-and-backups.yml
-     """
+@app.get("/v1/nuke-captain-domain-data", response_class=PlainTextResponse)
+async def nuke_captain_domain_data(request: CaptainDomainNukeDataAndBackupsRequest):
+    """
+     Submit the captain_domain/tenant you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will delete all backups and data for the provided captain_domain.
+     
+     This will remove things like the vault and cert-manager backups.
+
+     Note: this may not delete things like Loki/Thanos/Tempo data as that may be managed outside of AWS.
+    """
+    return github.nuke_aws_account_workflow(CaptainDomainNukeDataAndBackupsRequest.captain_domain)
 
 @app.post("/v1/chisel", response_class=PlainTextResponse, include_in_schema=False)
 async def create_chisel_nodes(request: CreateLightsailRequest):
