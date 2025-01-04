@@ -18,16 +18,6 @@ def call_github_workflow(github_dispatch_url: str, workflow_inputs: dict = None)
     return response.status_code  
 
 def nuke_aws_account_workflow(aws_sub_account_name):
-    """Nukes the AWS account
-
-    Returns:
-        int: status code
-    """
-    call_github_workflow("https://api.github.com/repos/internal-GlueOps/gha-aws-cleanup/actions/workflows/aws-nuke-account.yml/dispatches", {"aws_sub_account_name": aws_sub_account_name})
-
-    return "View all jobs: https://github.com/internal-GlueOps/gha-aws-cleanup/actions/workflows/aws-nuke-account.yml"
-
-def nuke_aws_account_workflow(aws_sub_account_name):
     call_github_workflow("https://api.github.com/repos/internal-GlueOps/gha-aws-cleanup/actions/workflows/aws-nuke-account.yml/dispatches", {"AWS_ACCOUNT_NAME_TO_NUKE": aws_sub_account_name})
     return "View all jobs: https://github.com/internal-GlueOps/gha-aws-cleanup/actions/workflows/aws-nuke-account.yml"
 
