@@ -54,14 +54,14 @@ async def create_credentials_for_aws_captain_account(request: AwsCredentialsRequ
     return aws_setup_test_account_credentials.create_admin_credentials_within_captain_account(request.aws_sub_account_name)
 
 
-@app.post("/v1/nuke-aws-captain-account", response_class=PlainTextResponse)
+@app.delete("/v1/nuke-aws-captain-account", response_class=PlainTextResponse)
 async def nuke_aws_captain_account(request: AwsNukeAccountRequest):
     """
      Submit the AWS account name you want to nuke (e.g. glueops-captain-foobar)
     """
     return github.nuke_aws_account_workflow(AwsNukeAccountRequest.aws_sub_account_name)
 
-@app.post("/v1/nuke-captain-domain-data", response_class=PlainTextResponse)
+@app.delete("/v1/nuke-captain-domain-data", response_class=PlainTextResponse)
 async def nuke_captain_domain_data(request: CaptainDomainNukeDataAndBackupsRequest):
     """
      Submit the captain_domain/tenant you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will delete all backups and data for the provided captain_domain.
