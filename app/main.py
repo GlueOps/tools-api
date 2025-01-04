@@ -18,7 +18,8 @@ logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 app = FastAPI(
     title="Tools API",
     description="Various APIs to help you speed up your development and testing.",
-    version=os.getenv("VERSION", "unknown")
+    version=os.getenv("VERSION", "unknown"),
+    swagger_ui_parameters={"defaultModelsExpandDepth": -1}
 )
 
 @app.get("/", include_in_schema=False)
