@@ -1,5 +1,6 @@
 import requests
 import os
+import json
 
 def call_github_workflow(github_dispatch_url: str, workflow_inputs: dict = None):
     """Calls the github user management workflow
