@@ -8,6 +8,7 @@ fastapi = {extras = ["standard"], version = "*"}
 glueops-helpers = {file = "https://github.com/GlueOps/python-glueops-helpers-library/archive/refs/tags/v0.6.0.zip"}
 minio = "*"
 boto3 = "*"
+hcloud = "*"
 
 [dev-packages]
 
