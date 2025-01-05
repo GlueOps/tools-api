@@ -39,6 +39,7 @@ spec:
   port: 9090
   auth: selfhosted
 ---
+"""
 YAML
 """
 
