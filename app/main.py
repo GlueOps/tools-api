@@ -5,8 +5,8 @@ from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, CreateLightsailRequest, AwsCredentialsRequest, DeleteLightsailRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest
-from util import storage, aws_lightsail, aws_setup_test_account_credentials, github
+from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest
+from util import storage, aws_setup_test_account_credentials, github, hetzner
 from fastapi.responses import RedirectResponse
 
 
@@ -78,23 +78,23 @@ async def nuke_captain_domain_data(request: CaptainDomainNukeDataAndBackupsReque
     """
     return github.nuke_captain_domain_data_and_backups(request.captain_domain)
 
-@app.post("/v1/chisel", response_class=PlainTextResponse, include_in_schema=False)
-async def create_chisel_nodes(request: CreateLightsailRequest):
+@app.post("/v1/chisel", response_class=PlainTextResponse)
+async def create_chisel_nodes(request: ChiselNodesRequest):
     """
         If you are testing within k3ds you will need chisel to provide you with load balancers.
         For a provided captain_domain this will delete any existing chisel nodes and provision new ones.
         Note: this will generally result in new IPs being provisioned.
     """
-    return aws_lightsail.create_lightsail_instances(request)
+    return hetzner.create_instances(request)
 
 
-@app.delete("/v1/chisel", include_in_schema=False)
-async def delete_chisel_nodes(request: DeleteLightsailRequest):
+@app.delete("/v1/chisel")
+async def delete_chisel_nodes(request: ChiselNodesRequest):
     """
         When you are done testing with k3ds this will delete your chisel nodes and save on costs.
     """
-    response = aws_lightsail.create_lightsail_instances(request)
-    return JSONResponse(status_code=200, content={"message": response})
+    response = hetzner.delete_existing_servers(request)
+    return JSONResponse(status_code=200, content={"message": "Successfully deleted chisel nodes."})
 
 
 @app.get("/health", include_in_schema=False)
