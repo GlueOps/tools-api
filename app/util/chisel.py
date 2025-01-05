@@ -40,6 +40,7 @@ spec:
   auth: selfhosted
 ---
 """
+    manifest += f"""
 YAML
 """
 
