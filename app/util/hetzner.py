@@ -33,8 +33,8 @@ def create_instances(request):
     user_data_readable = f"""#cloud-config
 package_update: true
 runcmd:
-  - curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh && sudo apt install tmux -y
-  - sudo docker run -d --restart always -p 9090:9090 -p 443:443 -p 80:80 -it jpillora/chisel:v1.10.1 server --reverse --port=9090 --auth='{credentials_for_chisel}'
+- curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh && sudo apt install tmux -y
+- sudo docker run -d --restart always -p 9090:9090 -p 443:443 -p 80:80 -it jpillora/chisel:v1.10.1 server --reverse --port=9090 --auth='{credentials_for_chisel}'
 """
 
     user_data = multiline_to_singleline(user_data_readable)
