@@ -30,8 +30,7 @@ def create_instances(request):
     credentials_for_chisel = util.chisel.generate_credentials()
 
     # Define user data
-    user_data_readable = f"""
-#cloud-config
+    user_data_readable = f"""#cloud-config
 package_update: true
 runcmd:
   - curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh && sudo apt install tmux -y
