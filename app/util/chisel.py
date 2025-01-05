@@ -29,8 +29,7 @@ stringData:
 ---
 """
     for suffix in suffixes:
-      manifest += f"""
-apiVersion: chisel-operator.io/v1
+      manifest += f"""apiVersion: chisel-operator.io/v1
 kind: ExitNode
 metadata:
   name: {suffix}
@@ -40,6 +39,7 @@ spec:
   port: 9090
   auth: selfhosted
 ---
+YAML
 """
 
     return manifest
