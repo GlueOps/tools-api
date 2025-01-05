@@ -67,7 +67,7 @@ def create_server(server_name, captain_domain, user_data_one_line_format):
                 ssh_keys=ssh_keys,
                 location=location,
                 user_data=user_data_one_line_format,
-                labels={"captain_domain": captain_domain},
+                labels={"captain_domain": captain_domain, "chisel_node": "True"},
                 public_net=ServerCreatePublicNetwork(
                     enable_ipv4=True,
                     enable_ipv6=False
