@@ -121,12 +121,12 @@ cat <<ENV >> $(pwd)/.env
 export AWS_ACCESS_KEY_ID={access_key}
 export AWS_SECRET_ACCESS_KEY={secret_key}
 export AWS_DEFAULT_REGION=us-west-2
-#aws eks update-kubeconfig --region us-west-2 --name captain-cluster --role-arn ${arn_of_role_created}
+#aws eks update-kubeconfig --region us-west-2 --name captain-cluster --role-arn {arn_of_role_created}
 ENV
 
 # Here is the iam_role_to_assume that you will need to specify in your terraform module for {aws_sub_account_name}:
+# {arn_of_role_created}
 
-{arn_of_role_created}
     """
 
     return env_content
