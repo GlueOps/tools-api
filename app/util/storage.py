@@ -4,6 +4,10 @@ from minio.error import S3Error
 from minio.deleteobjects import DeleteObject
 import re
 import os
+import glueops.setup_logging
+
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 
 # ----------------------- Configuration ----------------------- #
 
@@ -34,7 +38,7 @@ def initialize_minio_client():
         )
         return client
     except Exception as e:
-        print(f"Failed to initialize MinIO client: {e}")
+        logger.info(f"Failed to initialize MinIO client: {e}")
         raise
 
 
@@ -144,7 +148,7 @@ def list_buckets(client):
         buckets = client.list_buckets()
         return buckets
     except S3Error as e:
-        print(f"Error listing buckets: {e}")
+        logger.info(f"Error listing buckets: {e}")
         raise
 
 def find_buckets_containing(base_name, buckets):
@@ -175,11 +179,11 @@ def delete_all_objects(client, bucket_name):
         delete_results = client.remove_objects(bucket_name, objects_to_delete)
         for result in delete_results:
             if result.status_code == 204:
-                print(f"Deleted object: {result.object_name}")
+                logger.info(f"Deleted object: {result.object_name}")
             elif result.status_code != 204:
-                print(f"Failed to delete object: {result.object_name}, Status Code: {result.status_code}")
+                logger.info(f"Failed to delete object: {result.object_name}, Status Code: {result.status_code}")
     except S3Error as e:
-        print(f"Error deleting objects in bucket '{bucket_name}': {e}")
+        logger.info(f"Error deleting objects in bucket '{bucket_name}': {e}")
         raise
 
 def delete_bucket(client, bucket_name):
@@ -191,15 +195,15 @@ def delete_bucket(client, bucket_name):
         bucket_name (str): The name of the bucket to delete.
     """
     # Delete all objects in the bucket
-    #print(f"Deleting all objects in bucket '{bucket_name}'...")
+    #logger.info(f"Deleting all objects in bucket '{bucket_name}'...")
     #delete_all_objects(client, bucket_name)
     
     try:
         # Remove the bucket
         client.remove_bucket(bucket_name)
-        print(f"Bucket '{bucket_name}' has been deleted successfully.")
+        logger.info(f"Bucket '{bucket_name}' has been deleted successfully.")
     except S3Error as e:
-        print(f"Error removing bucket '{bucket_name}': {e}")
+        logger.info(f"Error removing bucket '{bucket_name}': {e}")
         raise
 
 def create_bucket(client, bucket_name):
@@ -218,10 +222,10 @@ def create_bucket(client, bucket_name):
         for suffix in suffixes:
             full_bucket_name = f"{bucket_name}-{suffix}"
             client.make_bucket(full_bucket_name)
-            print(f"Bucket '{full_bucket_name}' created successfully.")
+            logger.info(f"Bucket '{full_bucket_name}' created successfully.")
         return bucket_name
     except S3Error as e:
-        print(f"Error creating bucket '{full_bucket_name}': {e}")
+        logger.info(f"Error creating bucket '{full_bucket_name}': {e}")
         raise
 
 def create_all_buckets(captain_domain):
@@ -232,7 +236,7 @@ def create_all_buckets(captain_domain):
     client = initialize_minio_client()
     
     # List all buckets
-    print("Listing all existing buckets...")
+    logger.info("Listing all existing buckets...")
     buckets = list_buckets(client)
     
     # Find buckets containing the base name
@@ -241,19 +245,19 @@ def create_all_buckets(captain_domain):
     
     # Delete each matching bucket
     if matching_buckets:
-        print(f"Found {len(matching_buckets)} bucket(s) containing '{base_bucket_name}'. Deleting them...")
+        logger.info(f"Found {len(matching_buckets)} bucket(s) containing '{base_bucket_name}'. Deleting them...")
         for bucket_name in matching_buckets:
             delete_bucket(client, bucket_name)
     else:
-        print(f"No existing buckets contain the base name '{base_bucket_name}'.")
+        logger.info(f"No existing buckets contain the base name '{base_bucket_name}'.")
     
     # Generate a unique bucket name
     unique_bucket_name = generate_unique_bucket_name(base_bucket_name)
-    print(f"Generated unique bucket name: {unique_bucket_name}")
+    logger.info(f"Generated unique bucket name: {unique_bucket_name}")
     
     # Create the new bucket
     bucket_prefix = create_bucket(client, unique_bucket_name)
-    print(f"Buckets created with prefix: {bucket_prefix}")
+    logger.info(f"Buckets created with prefix: {bucket_prefix}")
     parameterized_config = parameterize_storage_config(bucket_prefix)
     return parameterized_config
 

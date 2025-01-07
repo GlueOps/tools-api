@@ -30,6 +30,8 @@ async def root():
 async def global_exception_handler(request: Request, exc: Exception):
     # Extract the full stack trace
     stack_trace = traceback.format_exc()
+
+    logger.error(f"Exception: {str(exc)} STACK_TRACE: {stack_trace}")
     
     # Return the full stack trace in the response
     return JSONResponse(
