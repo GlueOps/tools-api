@@ -38,7 +38,7 @@ def initialize_minio_client():
         )
         return client
     except Exception as e:
-        logger.info(f"Failed to initialize MinIO client: {e}")
+        logger.error(f"Failed to initialize MinIO client: {e}")
         raise
 
 
@@ -148,7 +148,7 @@ def list_buckets(client):
         buckets = client.list_buckets()
         return buckets
     except S3Error as e:
-        logger.info(f"Error listing buckets: {e}")
+        logger.error(f"Error listing buckets: {e}")
         raise
 
 def find_buckets_containing(base_name, buckets):
@@ -181,9 +181,9 @@ def delete_all_objects(client, bucket_name):
             if result.status_code == 204:
                 logger.info(f"Deleted object: {result.object_name}")
             elif result.status_code != 204:
-                logger.info(f"Failed to delete object: {result.object_name}, Status Code: {result.status_code}")
+                logger.error(f"Failed to delete object: {result.object_name}, Status Code: {result.status_code}")
     except S3Error as e:
-        logger.info(f"Error deleting objects in bucket '{bucket_name}': {e}")
+        logger.error(f"Error deleting objects in bucket '{bucket_name}': {e}")
         raise
 
 def delete_bucket(client, bucket_name):
@@ -203,7 +203,7 @@ def delete_bucket(client, bucket_name):
         client.remove_bucket(bucket_name)
         logger.info(f"Bucket '{bucket_name}' has been deleted successfully.")
     except S3Error as e:
-        logger.info(f"Error removing bucket '{bucket_name}': {e}")
+        logger.error(f"Error removing bucket '{bucket_name}': {e}")
         raise
 
 def create_bucket(client, bucket_name):
