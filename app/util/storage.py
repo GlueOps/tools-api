@@ -79,8 +79,8 @@ bucketNames:
         s3: {loki_bucket}
         endpoint: https://{region}.your-objectstorage.com
         region: us-east-1
-        secretAccessKey: {access_key}
-        accessKeyId: {secret_key}
+        accessKeyId: {access_key}
+        secretAccessKey: {secret_key}
         s3ForcePathStyle: false
         insecure: false
     EOT
