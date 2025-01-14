@@ -63,14 +63,14 @@ def create_admin_credentials_within_captain_account(aws_sub_account_name):
     session_token = assume_role_response['Credentials']['SessionToken']
     access_key_id = assume_role_response['Credentials']['AccessKeyId']
     secret_access_key = assume_role_response['Credentials']['SecretAccessKey']
-    
-    # Set these credentials for subsequent AWS calls
-    os.environ['AWS_SESSION_TOKEN'] = session_token
-    os.environ['AWS_ACCESS_KEY_ID'] = access_key_id
-    os.environ['AWS_SECRET_ACCESS_KEY'] = secret_access_key
-    
+
     # Step 5: Create IAM user and assign a policy (for managing services)
-    iam_client = boto3.client('iam')
+    iam_client = boto3.client(
+        'iam',
+        aws_access_key_id=access_key_id,
+        aws_secret_access_key=secret_access_key,
+        aws_session_token=session_token
+    )
     iam_user_name = "dev-deployment-svc-account"
     iam_role_name = "glueops-captain-role"
     iam_policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
