@@ -20,9 +20,9 @@ def call_github_workflow(github_dispatch_url: str, workflow_inputs: dict = None)
     return response.status_code  
 
 def nuke_aws_account_workflow(aws_sub_account_name):
-    call_github_workflow("https://api.github.com/repos/internal-GlueOps/gha-aws-cleanup/actions/workflows/aws-nuke-account.yml/dispatches", {"AWS_ACCOUNT_NAME_TO_NUKE": aws_sub_account_name})
-    return "View all jobs: https://github.com/internal-GlueOps/gha-aws-cleanup/actions/workflows/aws-nuke-account.yml"
+    call_github_workflow("https://api.github.com/repos/internal-GlueOps/gha-tools-api/actions/workflows/aws-nuke-account.yml/dispatches", {"AWS_ACCOUNT_NAME_TO_NUKE": aws_sub_account_name})
+    return "View all jobs: https://github.com/internal-GlueOps/gha-tools-api/actions/workflows/aws-nuke-account.yml"
 
 def nuke_captain_domain_data_and_backups(captain_domain):
-    call_github_workflow("https://api.github.com/repos/internal-GlueOps/gha-aws-cleanup/actions/workflows/nuke-captain-domain-data-and-backups.yml/dispatches", {"CAPTAIN_DOMAIN_TO_NUKE": captain_domain})
-    return "View all jobs: https://github.com/internal-GlueOps/gha-aws-cleanup/actions/workflows/nuke-captain-domain-data-and-backups.yml"
+    call_github_workflow("https://api.github.com/repos/internal-GlueOps/gha-tools-api/actions/workflows/nuke-captain-domain-data-and-backups.yml/dispatches", {"CAPTAIN_DOMAIN_TO_NUKE": captain_domain})
+    return "View all jobs: https://github.com/internal-GlueOps/gha-tools-api/actions/workflows/nuke-captain-domain-data-and-backups.yml"
