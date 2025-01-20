@@ -1,6 +1,8 @@
 import requests
-import os
-import json
+import os, glueops.setup_logging, traceback, json
+
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 
 def call_github_workflow(github_dispatch_url: str, workflow_inputs: dict = None):
     """Calls the github user management workflow
@@ -14,9 +16,9 @@ def call_github_workflow(github_dispatch_url: str, workflow_inputs: dict = None)
     
     if workflow_inputs:
         payload["inputs"] = workflow_inputs
-
     payload_json = json.dumps(payload)
     response = requests.post(url=github_dispatch_url, data=payload_json, headers=headers)
+    logger.info(f"Response code: {response.status_code} Submitting GitHub Workflow to:{github_dispatch_url} with inputs: {workflow_inputs}")
     return response.status_code  
 
 def nuke_aws_account_workflow(aws_sub_account_name):
