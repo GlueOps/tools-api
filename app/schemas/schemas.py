@@ -18,3 +18,9 @@ class AwsNukeAccountRequest(BaseModel):
 
 class CaptainDomainNukeDataAndBackupsRequest(BaseModel):
     captain_domain: str = Field(...,example = 'nonprod.foobar.onglueops.rocks')
+
+class ResetGitHubOrganizationRequest(BaseModel):
+    captain_domain: str = Field(...,example = 'nonprod.foobar.onglueops.rocks')
+    delete_all_existing_repos: bool = Field(...,example = True)
+    custom_domain: str = Field(...,example = "example.com")
+    enable_custom_domain: bool = Field(...,example = False)
