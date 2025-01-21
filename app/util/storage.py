@@ -69,22 +69,22 @@ def parameterize_storage_config(bucket_prefix):
     """
     # Example usage
     template = """
-    loki_storage         = <<EOT
+      loki_storage         = <<EOT
 bucketNames:
         chunks: {loki_bucket}
         ruler: {loki_bucket}
         admin: {loki_bucket}
-    type: s3
-    s3:
-        s3: {loki_bucket}
-        endpoint: https://{region}.your-objectstorage.com
-        region: us-east-1
-        accessKeyId: {access_key}
-        secretAccessKey: {secret_key}
-        s3ForcePathStyle: false
-        insecure: false
+   type: s3
+   s3:
+      s3: {loki_bucket}
+      endpoint: https://{region}.your-objectstorage.com
+      region: us-east-1
+      accessKeyId: {access_key}
+      secretAccessKey: {secret_key}
+      s3ForcePathStyle: false
+      insecure: false
     EOT
-        thanos_storage       = <<EOT
+      thanos_storage       = <<EOT
 type: s3
     config:
         bucket: {thanos_bucket}
@@ -92,7 +92,7 @@ type: s3
         access_key: {access_key}
         secret_key: {secret_key}
 EOT
-        tempo_storage        = <<EOT
+      tempo_storage        = <<EOT
 backend: s3
     s3:
         access_key: {access_key}
