@@ -15,7 +15,7 @@ def get_suffixes():
 
 def create_chisel_yaml(captain_domain, credentials_for_chisel, ip_addresses, suffixes):
     manifest = f"""
-kubectl apply -k https://github.com/FyraLabs/chisel-operator?ref=v0.5.1
+kubectl apply -k https://github.com/FyraLabs/chisel-operator?ref=v0.6.0-beta.1
 
 kubectl apply -f - <<YAML
 apiVersion: v1
