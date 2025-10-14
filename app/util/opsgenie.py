@@ -10,7 +10,7 @@ def create_opsgeniealerts_manifest(request):
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: glueops-alerts-opsgenie
+  name: glueops-core-alerts-opsgenie
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -66,8 +66,8 @@ spec:
             apiVersion: monitoring.coreos.com/v1alpha1
             kind: AlertmanagerConfig
             metadata:
-              name: glueops-alerts
-              namespace: glueops-core-alerts-opsgenie
+              name: glueops-core-alerts-opsgenie
+              namespace: glueops-core-alerts
             spec:
               receivers:
               - name: glueops-alerts
