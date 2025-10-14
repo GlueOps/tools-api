@@ -5,8 +5,8 @@ from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ResetGitHubOrganizationRequest
-from util import storage, aws_setup_test_account_credentials, github, hetzner
+from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest
+from util import storage, aws_setup_test_account_credentials, github, hetzner, opsgenie
 from fastapi.responses import RedirectResponse
 
 
@@ -111,6 +111,13 @@ async def delete_chisel_nodes(request: ChiselNodesRequest):
     response = hetzner.delete_existing_servers(request)
     return JSONResponse(status_code=200, content={"message": "Successfully deleted chisel nodes."})
 
+
+@app.post("/v1/opsgenie", response_class=PlainTextResponse, summary="Creates Opsgenie Alerts Manifest")
+async def create_opsgeniealerts_manifest(request: OpsgenieAlertsManifestRequest):
+    """
+        Create a opsgenie/alertmanager configuration. Do this for any clusters you want alerts on.
+    """
+    return opsgenie.create_opsgeniealerts_manifest(request)
 
 @app.get("/health", include_in_schema=False)
 async def health():
