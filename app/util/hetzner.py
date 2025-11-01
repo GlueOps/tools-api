@@ -57,7 +57,7 @@ runcmd:
 
 
 def create_server(server_name, captain_domain, user_data_one_line_format):
-    server_type = ServerType(name="cx22")
+    server_type = ServerType(name="cx23")
     image = Image(name="debian-12")
     ssh_keys = client.ssh_keys.get_all(name="glueops-default-ssh-key")
     location = Location(name="hel1")
