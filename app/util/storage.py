@@ -15,7 +15,7 @@ logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 MINIO_SERVER = "fsn1.your-objectstorage.com"  # Replace with your MinIO server
 ACCESS_KEY = os.getenv("MINIO_S3_ACCESS_KEY_ID")               # Replace with your Access Key
 SECRET_KEY = os.getenv("MINIO_S3_SECRET_KEY")                  # Replace with your Secret Key
-MINIO_REGION = "fsn1"                         # Replace with your region
+MINIO_REGION = os.getenv("HETZNER_STORAGE_REGION")             # Replace with your region
 USE_SSL = True                                # Set to False if not using SSL
 
 # Bucket Configuration
