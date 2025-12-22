@@ -38,7 +38,7 @@ spec:
   host: "{ip_addresses[f'{captain_domain}-{suffix}']}"
   port: 9090
   auth: selfhosted
-  chisel_image: replicas.mirror.gpkg.io/proxy-ghcr-io/fyralabs/chisel:v0.1.0-fyra
+  chisel_image: ghcr.repo.gpkg.io/fyralabs/chisel:v0.1.0-fyra
 ---
 """
     manifest += f"""
