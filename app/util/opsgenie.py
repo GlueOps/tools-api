@@ -39,7 +39,7 @@ spec:
       values: |
         appName: 'glueops-core-alerts-opsgenie'
         image:
-          registry: replicas.mirror.gpkg.io/proxy-ghcr-io
+          registry: ghcr.repo.gpkg.io
           repository: glueops/cluster-monitoring
           tag: v2.0.0@sha256:cc6b9fd4da9e18468aba6757ff6a891d843e2d134884bae0f6404faa520023bb
           pullPolicy: IfNotPresent
