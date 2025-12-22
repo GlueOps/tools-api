@@ -100,7 +100,10 @@ async def create_chisel_nodes(request: ChiselNodesRequest):
         For a provided captain_domain this will delete any existing chisel nodes and provision new ones.
         Note: this will generally result in new IPs being provisioned.
     """
-    return hetzner.create_instances(request)
+    logger.info(f"Received POST request to create chisel nodes for captain_domain: {request.captain_domain}")
+    result = hetzner.create_instances(request)
+    logger.info(f"Successfully completed chisel node creation for captain_domain: {request.captain_domain}")
+    return result
 
 
 @app.delete("/v1/chisel", summary="Deletes your chisel nodes. Please run this when you are done with development to save on costs.")
@@ -108,7 +111,9 @@ async def delete_chisel_nodes(request: ChiselNodesRequest):
     """
         When you are done testing with k3ds this will delete your chisel nodes and save on costs.
     """
+    logger.info(f"Received DELETE request to delete chisel nodes for captain_domain: {request.captain_domain}")
     response = hetzner.delete_existing_servers(request)
+    logger.info(f"Successfully completed chisel node deletion for captain_domain: {request.captain_domain}")
     return JSONResponse(status_code=200, content={"message": "Successfully deleted chisel nodes."})
 
 
