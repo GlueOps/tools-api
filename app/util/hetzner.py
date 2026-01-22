@@ -52,8 +52,9 @@ runcmd:
     user_data = multiline_to_singleline(user_data_readable)
 
     try:
-        logger.info(f"Getting chisel suffixes...")
-        suffixes = util.chisel.get_suffixes()
+        node_count = request.node_count
+        logger.info(f"Getting chisel suffixes for {node_count} nodes...")
+        suffixes = util.chisel.get_suffixes(node_count)
         logger.info(f"Got suffixes: {suffixes}")
     except Exception as e:
         logger.error(f"Failed to get chisel suffixes: {str(e)}")
