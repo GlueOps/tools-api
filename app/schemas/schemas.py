@@ -14,6 +14,9 @@ class ChiselNodesRequest(BaseModel):
         description="Number of exit nodes to create (1-6, default: 2)"
     )
 
+class ChiselNodesDeleteRequest(BaseModel):
+    captain_domain: str = Field(..., example='nonprod.foobar.onglueops.rocks')
+
 class StorageBucketsRequest(BaseModel):
     captain_domain: str = Field(...,example = 'nonprod.foobar.onglueops.rocks')
 
