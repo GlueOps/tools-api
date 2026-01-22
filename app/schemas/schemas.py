@@ -5,7 +5,14 @@ class Message(BaseModel):
     message: str = Field(...,example = 'Success')
 
 class ChiselNodesRequest(BaseModel):
-    captain_domain: str  = Field(...,example = 'nonprod.foobar.onglueops.rocks')
+    captain_domain: str = Field(..., example='nonprod.foobar.onglueops.rocks')
+    node_count: int = Field(
+        default=2,
+        ge=1,
+        le=6,
+        example=2,
+        description="Number of exit nodes to create (1-6, default: 2)"
+    )
 
 class StorageBucketsRequest(BaseModel):
     captain_domain: str = Field(...,example = 'nonprod.foobar.onglueops.rocks')

@@ -9,8 +9,9 @@ def generate_credentials():
         + "".join(secrets.choice(character_pool) for _ in range(15))  # Generate another 15 secure characters
     )
 
-def get_suffixes():
-  return ["exit1", "exit2"]
+def get_suffixes(node_count: int = 2):
+    """Generate suffixes for the requested number of nodes (1-6)."""
+    return [f"exit{i}" for i in range(1, node_count + 1)]
 
 
 def create_chisel_yaml(captain_domain, credentials_for_chisel, ip_addresses, suffixes):
