@@ -5,7 +5,7 @@ from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest
+from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest
 from util import storage, aws_setup_test_account_credentials, github, hetzner, opsgenie
 from fastapi.responses import RedirectResponse
 
@@ -107,7 +107,7 @@ async def create_chisel_nodes(request: ChiselNodesRequest):
 
 
 @app.delete("/v1/chisel", summary="Deletes your chisel nodes. Please run this when you are done with development to save on costs.")
-async def delete_chisel_nodes(request: ChiselNodesRequest):
+async def delete_chisel_nodes(request: ChiselNodesDeleteRequest):
     """
         When you are done testing with k3ds this will delete your chisel nodes and save on costs.
     """
