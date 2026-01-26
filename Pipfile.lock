@@ -608,12 +608,12 @@
         },
         "hcloud": {
             "hashes": [
-                "sha256:170ad5ae4344b53bb5926187cfea6df3b76e447d8b8f52dd9e0d1579632d076b",
-                "sha256:fd8e668deaec997a3feade5edd37be059a53e4cbc14fb006097667502ef7ed4d"
+                "sha256:37b3ef30be1034299879d1da89b2ed34e907b79796b684e16d8d6f76bd4a3c47",
+                "sha256:eb1acb3115bc0b356b450ad23256873b58311b357a49625a8fe0cbaba2db509b"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.10'",
-            "version": "==2.15.0"
+            "version": "==2.16.0"
         },
         "httpcore": {
             "hashes": [
