@@ -82,20 +82,20 @@
         },
         "boto3": {
             "hashes": [
-                "sha256:5da0d35dd82451d4520af63f8fcc722537597d7c790035e8b3a8fc53f032be3a",
-                "sha256:81db4a1ef08b3a69b2c5a879e7bd26ee43ca3fd5202cd320a2aaa4f5dd11182c"
+                "sha256:75d7443c81a029283442fad138629be1eefaa3e6d430c28118a0f4cdbd57855d",
+                "sha256:db3fb539e3f806b911ec4ca991f2f8bff333c5f0b87132a82e28b521fc5ec164"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.9'",
-            "version": "==1.42.33"
+            "version": "==1.42.34"
         },
         "botocore": {
             "hashes": [
-                "sha256:156a1ead55c38709730c543eb8085c36098b7baf272fedc67cc4a543ae4b4cf6",
-                "sha256:ecf48db73605a592b6c7f8f29e517d9eb6cf0c7e004a1fdbd9c192afc7b42b03"
+                "sha256:92e44747da7890270d8dcc494ecc61fc315438440c55e00dc37a57d402b1bb66",
+                "sha256:94099b5d09d0c4bfa6414fb3cffd54275ce6e51d7ba016f17a0e79f9274f68f7"
             ],
             "markers": "python_version >= '3.9'",
-            "version": "==1.42.33"
+            "version": "==1.42.34"
         },
         "certifi": {
             "hashes": [
@@ -1075,11 +1075,11 @@
         },
         "python-multipart": {
             "hashes": [
-                "sha256:7137ebd4d3bbf70ea1622998f902b97a29434a9e8dc40eb203bbcf7c2a2cba92",
-                "sha256:cf7a6713e01c87aa35387f4774e812c4361150938d20d232800f75ffcf266090"
+                "sha256:2b2cd894c83d21bf49d702499531c7bafd057d730c201782048f7945d82de155",
+                "sha256:7340bef99a7e0032613f56dc36027b959fd3b30a787ed62d310e951f7c3a3a58"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==0.0.21"
+            "version": "==0.0.22"
         },
         "pyyaml": {
             "hashes": [
@@ -1178,11 +1178,11 @@
         },
         "rich": {
             "hashes": [
-                "sha256:73ff50c7c0c1c77c8243079283f4edb376f0f6442433aecb8ce7e6d0b92d1fe4",
-                "sha256:76bc51fe2e57d2b1be1f96c524b890b816e334ab4c1e45888799bfaab0021edd"
+                "sha256:b8c5f568a3a749f9290ec6bddedf835cec33696bfc1e48bcfecb276c7386e4b8",
+                "sha256:da750b1aebbff0b372557426fb3f35ba56de8ef954b3190315eb64076d6fb54e"
             ],
             "markers": "python_full_version >= '3.8.0'",
-            "version": "==14.2.0"
+            "version": "==14.3.1"
         },
         "rich-toolkit": {
             "hashes": [
