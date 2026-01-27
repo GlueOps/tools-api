@@ -16,7 +16,7 @@ def get_suffixes(node_count: int = 2):
 
 def create_chisel_yaml(captain_domain, credentials_for_chisel, ip_addresses, suffixes):
     manifest = f"""
-kubectl apply -k https://github.com/FyraLabs/chisel-operator?ref=v0.6.0-beta.1
+kubectl apply -k https://github.com/FyraLabs/chisel-operator?ref=v0.7.1
 
 kubectl apply -f - <<YAML
 apiVersion: v1
@@ -39,7 +39,7 @@ spec:
   host: "{ip_addresses[f'{captain_domain}-{suffix}']}"
   port: 9090
   auth: selfhosted
-  chisel_image: ghcr.repo.gpkg.io/fyralabs/chisel:v0.1.0-fyra
+  chisel_image: docker.io/jpillora/chisel:1
 ---
 """
     manifest += f"""
