@@ -18,7 +18,7 @@ logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 app = FastAPI(
     title="Tools API",
     description="Various APIs to help you speed up your development and testing.",
-    version=os.getenv("VERSION", "unknown"),
+    version=os.getenv("VERSION", "UNKNOWN"),
     swagger_ui_parameters={"defaultModelsExpandDepth": -1}
 )
 
@@ -148,7 +148,9 @@ async def health():
 @app.get("/version", summary="Contains version information about this tools-api")
 async def version():
     return {
-        "version": os.getenv("VERSION", "unknown"),
-        "commit_sha": os.getenv("COMMIT_SHA", "unknown"),
-        "build_timestamp": os.getenv("BUILD_TIMESTAMP", "unknown")
+        "version": os.getenv("VERSION", "UNKNOWN"),
+        "commit_sha": os.getenv("COMMIT_SHA", "UNKNOWN"),
+        "short_sha": os.getenv("SHORT_SHA", "UNKNOWN"),
+        "build_timestamp": os.getenv("BUILD_TIMESTAMP", "UNKNOWN"),
+        "git_ref": os.getenv("GIT_REF", "UNKNOWN")
     }

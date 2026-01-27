@@ -12,13 +12,17 @@ COPY --chown=${DEVBOX_USER}:${DEVBOX_USER} Pipfile Pipfile
 COPY --chown=${DEVBOX_USER}:${DEVBOX_USER} Pipfile.lock Pipfile.lock
 
 # Accept build arguments for versioning
-ARG VERSION=unknown
-ARG COMMIT_SHA=unknown
-ARG BUILD_TIMESTAMP=unknown
+ARG VERSION=UNKNOWN
+ARG COMMIT_SHA=UNKNOWN
+ARG SHORT_SHA=UNKNOWN
+ARG BUILD_TIMESTAMP=UNKNOWN
+ARG GIT_REF=UNKNOWN
 
 ENV VERSION=${VERSION}
 ENV COMMIT_SHA=${COMMIT_SHA}
+ENV SHORT_SHA=${SHORT_SHA}
 ENV BUILD_TIMESTAMP=${BUILD_TIMESTAMP}
+ENV GIT_REF=${GIT_REF}
 
 RUN devbox run -- echo "Installed Packages."
 RUN devbox run pipenv install
