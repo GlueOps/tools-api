@@ -5,8 +5,8 @@ from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest
-from util import storage, aws_setup_test_account_credentials, github, hetzner, opsgenie
+from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, CaptainManifestsRequest
+from util import storage, aws_setup_test_account_credentials, github, hetzner, opsgenie, captain_manifests
 from fastapi.responses import RedirectResponse
 
 
@@ -123,6 +123,17 @@ async def create_opsgeniealerts_manifest(request: OpsgenieAlertsManifestRequest)
         Create a opsgenie/alertmanager configuration. Do this for any clusters you want alerts on.
     """
     return opsgenie.create_opsgeniealerts_manifest(request)
+
+@app.post("/v1/captain-manifests", response_class=PlainTextResponse, summary="Generate captain manifests")
+async def create_captain_manifests(request: CaptainManifestsRequest):
+    """
+        Generate YAML manifests for captain deployments based on the provided configuration.
+    """
+    return captain_manifests.generate_manifests(
+        request.captain_domain,
+        request.tenant_github_organization_name,
+        request.tenant_deployment_configurations_repository_name
+    )
 
 @app.get("/health", include_in_schema=False)
 async def health():

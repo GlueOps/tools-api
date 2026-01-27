@@ -39,3 +39,8 @@ class OpsgenieAlertsManifestRequest(BaseModel):
     captain_domain: str  = Field(...,example = 'nonprod.foobar.onglueops.rocks')
     opsgenie_api_key: str  = Field(...,example = '6825b4ef-4e84-44a1-8450-b46b02852add')
 
+class CaptainManifestsRequest(BaseModel):
+    captain_domain: str = Field(..., example='nonprod.foobar.onglueops.rocks')
+    tenant_github_organization_name: str = Field(..., example='development-tenant-foobar')
+    tenant_deployment_configurations_repository_name: str = Field(..., example='deployment-configurations')
+

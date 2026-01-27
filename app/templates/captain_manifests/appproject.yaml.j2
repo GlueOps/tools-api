@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject   
+metadata:
+  name: <% environment_name %>
+spec:      
+  sourceNamespaces:
+  - '<% environment_name %>'                  
+  clusterResourceBlacklist:
+  - group: '*'
+    kind: '*'   
+  namespaceResourceBlacklist:
+  - group: '*'
+    kind: 'Namespace'  
+  - group: '*'
+    kind: 'CustomResourceDefinition'
+  destinations:
+  - name: '*'
+    namespace: '<% environment_name %>'
+    server: '*'
+  - name: '*'
+    namespace: 'glueops-core'
+    server: '*'
+  roles:
+  - description: <% tenant_github_organization_name %>:developers
+    groups:
+    - "<% tenant_github_organization_name %>:developers"
+    policies:
+    - p, proj:<% environment_name %>:read-only, applications, get, <% environment_name %>/*, allow   
+    - p, proj:<% environment_name %>:read-only, applications, sync, <% environment_name %>/*, allow   
+    - p, proj:<% environment_name %>:read-only, logs, *, <% environment_name %>/*, allow
+    - p, proj:<% environment_name %>:read-only, applications, action/external-secrets.io/ExternalSecret/refresh, <% environment_name %>/*, allow
+    - p, proj:<% environment_name %>:read-only, exec, *, <% environment_name %>/*, allow   
+    - p, proj:<% environment_name %>:read-only, applications, action/apps/Deployment/restart, <% environment_name %>/*, allow   
+    - p, proj:<% environment_name %>:read-only, applications, delete/*/Pod/*/*, <% environment_name %>/*, allow   
+    - p, proj:<% environment_name %>:read-only, applications, delete/*/Deployment/*/*, <% environment_name %>/*, allow 
+    - p, proj:<% environment_name %>:read-only, applications, delete/*/ReplicaSet/*/*, <% environment_name %>/*, allow 
+    - p, proj:<% environment_name %>:read-only, applications, action/batch/CronJob/create-job, <% environment_name %>/*, allow
+    - p, proj:<% environment_name %>:read-only, applications, action/batch/Job/terminate, <% environment_name %>/*, allow
+    name: read-only
+  sourceRepos:
+  - https://helm.gpkg.io/project-template
+  - https://helm.gpkg.io/service
+  - https://incubating-helm.gpkg.io/project-template
+  - https://incubating-helm.gpkg.io/service
+  - https://incubating-helm.gpkg.io/platform
+  - https://github.com/<% tenant_github_organization_name %>/<% tenant_deployment_configurations_repository_name %>
+  - https://github.com/<% tenant_github_organization_name %>/*
+  - https://github.com/GlueOps/*
