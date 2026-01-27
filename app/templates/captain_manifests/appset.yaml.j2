@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: <% environment_name %>-application-set
+  namespace: glueops-core
+spec:
+  goTemplate: true
+  generators:
+  - git:
+      repoURL: https://github.com/<% tenant_github_organization_name %>/<% tenant_deployment_configurations_repository_name %>
+      revision: HEAD
+      directories:
+      - path: 'apps/*/envs/*'
+      - path: 'apps/*/envs/previews'
+        exclude: true
+  template:
+    metadata:
+      name: '{{ index .path.segments 1 }}-{{ .path.basenameNormalized }}'
+      namespace: <% environment_name %>
+      annotations:
+        preview_environment: 'false'
+    spec:
+      destination:
+        namespace: <% environment_name %>
+        server: https://kubernetes.default.svc
+      project: <% environment_name %>
+      sources:
+      - chart: app
+        helm:
+          valueFiles:
+          - '$values/common/common-values.yaml'
+          - '$values/env-overlays/<% environment_name %>/env-values.yaml'
+          - '$values/apps/{{ index .path.segments 1 }}/base/base-values.yaml'
+          - '$values/{{ .path.path }}/values.yaml'
+          values: |-
+            captain_domain: <% captain_domain %>
+            appName: '{{ index .path.segments 1 }}-{{ .path.basenameNormalized }}'
+
+        repoURL: https://helm.gpkg.io/project-template
+        targetRevision: 0.8.1
+      - repoURL: https://github.com/<% tenant_github_organization_name %>/<% tenant_deployment_configurations_repository_name %>
+        targetRevision: main
+        ref: values
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m0s
+          limit: 2
+        syncOptions:
+        - CreateNamespace=true
