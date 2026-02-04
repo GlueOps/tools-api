@@ -87,7 +87,7 @@ runcmd:
 
 def create_server(server_name, captain_domain, user_data_one_line_format):
     try:
-        CHISEL_NODE_HCLOUD_INSTANCE_TYPE = os.getenv("CHISEL_HCLOUD_INSTANCE_TYPE")
+        CHISEL_NODE_HCLOUD_INSTANCE_TYPE = os.getenv("CHISEL_NODE_HCLOUD_INSTANCE_TYPE")
         logger.info(f"Creating instances of type: {CHISEL_NODE_HCLOUD_INSTANCE_TYPE}")
         
         server_type = ServerType(name=CHISEL_NODE_HCLOUD_INSTANCE_TYPE)
