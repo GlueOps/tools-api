@@ -14,6 +14,7 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 
 client = Client(token=os.getenv("HCLOUD_TOKEN"))
+CHISEL_NODE_HCLOUD_INSTANCE_TYPE = os.getenv("CHISEL_HCLOUD_INSTANCE_TYPE")
 
 def multiline_to_singleline(input_text: str) -> str:
     """
@@ -87,7 +88,7 @@ runcmd:
 
 def create_server(server_name, captain_domain, user_data_one_line_format):
     try:
-        server_type = ServerType(name="cx23")
+        server_type = ServerType(name=CHISEL_NODE_HCLOUD_INSTANCE_TYPE)
         image = Image(name="debian-12")
         
         logger.info(f"Fetching SSH keys for server {server_name}...")
