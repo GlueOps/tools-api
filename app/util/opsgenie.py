@@ -34,10 +34,9 @@ spec:
   source:
     repoURL: https://helm.gpkg.io/project-template
     chart: app
-    targetRevision: 0.8.1
+    targetRevision: 0.9.0
     helm:
       values: |
-        appName: 'glueops-core-alerts-opsgenie'
         image:
           registry: ghcr.repo.gpkg.io
           repository: glueops/cluster-monitoring

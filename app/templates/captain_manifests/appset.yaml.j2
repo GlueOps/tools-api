@@ -34,7 +34,6 @@ spec:
           - '$values/{{ .path.path }}/values.yaml'
           values: |-
             captain_domain: <% captain_domain %>
-            appName: '{{ index .path.segments 1 }}-{{ .path.basenameNormalized }}'
 
         repoURL: https://helm.gpkg.io/project-template
         targetRevision: 0.9.0
