@@ -15,7 +15,7 @@ spec:
         exclude: true
   template:
     metadata:
-      name: '{{ index .path.segments 1 }}-{{ .path.basenameNormalized }}'
+      name: '{{ index .path.segments 1 | replace "." "-"  | replace "_" "-" }}-{{ .path.basenameNormalized }}'
       namespace: <% environment_name %>
       annotations:
         preview_environment: 'false'
