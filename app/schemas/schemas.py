@@ -44,3 +44,6 @@ class CaptainManifestsRequest(BaseModel):
     tenant_github_organization_name: str = Field(..., example='development-tenant-foobar')
     tenant_deployment_configurations_repository_name: str = Field(..., example='deployment-configurations')
 
+class GitHubWorkflowRunStatusRequest(BaseModel):
+    run_url: str = Field(..., example='https://github.com/internal-GlueOps/gha-tools-api/actions/runs/12345678')
+

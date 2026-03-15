@@ -5,7 +5,7 @@ from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, CaptainManifestsRequest
+from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, CaptainManifestsRequest, GitHubWorkflowRunStatusRequest
 from util import storage, aws_setup_test_account_credentials, github, hetzner, opsgenie, captain_manifests
 from fastapi.responses import RedirectResponse
 
@@ -62,14 +62,14 @@ async def create_credentials_for_aws_captain_account(request: AwsCredentialsRequ
     return aws_setup_test_account_credentials.create_admin_credentials_within_captain_account(request.aws_sub_account_name)
 
 
-@app.delete("/v1/nuke-aws-captain-account", response_class=PlainTextResponse, summary="Run this after you are done testing within AWS. This will clean up orphaned resources. Note: you may have to run this 2x.")
+@app.delete("/v1/nuke-aws-captain-account", summary="Run this after you are done testing within AWS. This will clean up orphaned resources. Note: you may have to run this 2x.")
 async def nuke_aws_captain_account(request: AwsNukeAccountRequest):
     """
      Submit the AWS account name you want to nuke (e.g. glueops-captain-foobar)
     """
     return github.nuke_aws_account_workflow(request.aws_sub_account_name)
 
-@app.delete("/v1/nuke-captain-domain-data", response_class=PlainTextResponse, summary="Deletes all backups/data for a provided captain_domain. Running this before a cluster creation helps ensure a clean environment.")
+@app.delete("/v1/nuke-captain-domain-data", summary="Deletes all backups/data for a provided captain_domain. Running this before a cluster creation helps ensure a clean environment.")
 async def nuke_captain_domain_data(request: CaptainDomainNukeDataAndBackupsRequest):
     """
      Submit the captain_domain/tenant you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will delete all backups and data for the provided captain_domain.
@@ -81,7 +81,7 @@ async def nuke_captain_domain_data(request: CaptainDomainNukeDataAndBackupsReque
     return github.nuke_captain_domain_data_and_backups(request.captain_domain)
 
 
-@app.delete("/v1/reset-github-organization", response_class=PlainTextResponse, summary="Resets the GitHub Organization to make it easier to get a new dev cluster runner for Dev")
+@app.delete("/v1/reset-github-organization", summary="Resets the GitHub Organization to make it easier to get a new dev cluster runner for Dev")
 async def reset_github_organization(request: ResetGitHubOrganizationRequest):
     """
      Submit the dev captain_domain you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will reset the GitHub organization so that you can easily get up and running with a new dev cluster.
@@ -92,6 +92,14 @@ async def reset_github_organization(request: ResetGitHubOrganizationRequest):
 
     """
     return github.reset_tenant_github_organization(request.captain_domain, request.delete_all_existing_repos, request.custom_domain, request.enable_custom_domain)
+
+@app.post("/v1/github/workflow-run-status", summary="Get the status of a GitHub Actions workflow run")
+async def get_workflow_run_status(request: GitHubWorkflowRunStatusRequest):
+    """
+     Provide a GitHub Actions run URL (e.g. https://github.com/owner/repo/actions/runs/12345678) and get the current status of that workflow run.
+     Works for any repo the configured GITHUB_TOKEN has read access to.
+    """
+    return github.get_workflow_run_status(request.run_url)
 
 @app.post("/v1/chisel", response_class=PlainTextResponse, summary="Creates Chisel nodes for dev/k3d clusters. This allows us to mimic a Cloud Controller for Loadbalancers (e.g. NLBs with EKS)")
 async def create_chisel_nodes(request: ChiselNodesRequest):

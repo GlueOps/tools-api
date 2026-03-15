@@ -2,8 +2,6 @@ name: Publish to GHCR.io
  
 on:
   push:
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 env:
@@ -16,6 +14,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      actions: read
 
     steps:
       - name: Checkout repository
@@ -70,3 +69,16 @@ jobs:
             SHORT_SHA=${{ steps.vars.outputs.short_sha }}
             BUILD_TIMESTAMP=${{ steps.vars.outputs.build_timestamp }}
             GIT_REF=${{ github.ref_name }}
+
+      - name: Set package name
+        id: package
+        run: echo "name=$(basename '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Cleanup old images
+        uses: dataaxiom/ghcr-cleanup-action@cd0cdb900b5dbf3a6f2cc869f0dbb0b8211f50c4 # v1.0.16
+        with:
+          package: ${{ steps.package.outputs.name }}
+          exclude-tags: latest,main,v*
+          keep-n-tagged: 5
+          delete-untagged: true
+          delete-partial-images: true

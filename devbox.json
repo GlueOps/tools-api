@@ -6,9 +6,6 @@
   ],
   "shell": {
     "scripts": {
-      "k8s": [
-        "devbox run pipenv run fastapi run"
-    ],
       "dev": [
         "echo 'To install packages run: pipenv install'",
         "echo 'To start the app run: fastapi dev'",
