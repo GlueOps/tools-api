@@ -88,7 +88,7 @@ func main() {
 			},
 		},
 		OpenAPIPath:   "/openapi",
-		DocsPath:      "",
+		DocsPath:      "/internal/docs",
 		SchemasPath:   "/schemas",
 		Formats:       huma.DefaultFormats,
 		DefaultFormat: "application/json",
