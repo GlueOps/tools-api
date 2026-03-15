@@ -89,7 +89,29 @@ func main() {
 		},
 		OpenAPIPath:   "/openapi",
 		DocsPath:      "/docs",
-		DocsRenderer:  huma.DocsRendererStoplightElements,
+		DocsRenderer: func(api huma.API) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "text/html")
+				w.Write([]byte(`<!DOCTYPE html>
+<html>
+<head>
+  <title>` + api.OpenAPI().Info.Title + `</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css">
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+  <script>
+    SwaggerUIBundle({
+      url: '/openapi',
+      dom_id: '#swagger-ui',
+      defaultModelsExpandDepth: -1
+    });
+  </script>
+</body>
+</html>`))
+			})
+		},
 		SchemasPath:   "/schemas",
 		Formats:       huma.DefaultFormats,
 		DefaultFormat: "application/json",
