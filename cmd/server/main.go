@@ -88,14 +88,21 @@ func main() {
 			},
 		},
 		OpenAPIPath:   "/openapi",
-		DocsPath:      "/docs",
-		DocsRenderer: func(api huma.API) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "text/html")
-				w.Write([]byte(`<!DOCTYPE html>
+		DocsPath:      "",
+		SchemasPath:   "/schemas",
+		Formats:       huma.DefaultFormats,
+		DefaultFormat: "application/json",
+	}
+
+	api := humachi.New(router, config)
+
+	// Swagger UI docs page with schemas hidden (matching FastAPI behavior).
+	router.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write([]byte(`<!DOCTYPE html>
 <html>
 <head>
-  <title>` + api.OpenAPI().Info.Title + `</title>
+  <title>Tools API</title>
   <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css">
 </head>
 <body>
@@ -110,14 +117,7 @@ func main() {
   </script>
 </body>
 </html>`))
-			})
-		},
-		SchemasPath:   "/schemas",
-		Formats:       huma.DefaultFormats,
-		DefaultFormat: "application/json",
-	}
-
-	api := humachi.New(router, config)
+	})
 
 	// Health endpoint registered directly on chi (excluded from OpenAPI schema).
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
