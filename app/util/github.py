@@ -68,7 +68,7 @@ def _dispatch_and_get_run(workflow_file: str, workflow_inputs: dict = None):
     dispatch_url = f"{REPO_API_BASE}/actions/workflows/{workflow_file}/dispatches"
     all_jobs_url = f"{REPO_HTML_BASE}/actions/workflows/{workflow_file}"
     status_code = call_github_workflow(dispatch_url, workflow_inputs)
-    if status_code != 204:
+    if status_code < 200 or status_code >= 300:
         raise ValueError(f"GitHub workflow dispatch failed with status {status_code}")
     run_info = _get_workflow_run_id(workflow_file)
     return {
