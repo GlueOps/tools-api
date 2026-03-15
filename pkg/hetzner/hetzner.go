@@ -12,8 +12,7 @@ import (
 )
 
 const (
-	sshKeyName = "glueops-default-ssh-key"
-	imageName  = "debian-12"
+	imageName = "debian-12"
 	location   = "hel1"
 )
 
@@ -131,19 +130,6 @@ func createServer(ctx context.Context, client *hcloud.Client, serverName, captai
 	instanceType := os.Getenv("CHISEL_HCLOUD_INSTANCE_TYPE")
 	slog.Info("creating instance", "type", instanceType, "name", serverName)
 
-	slog.Info("fetching SSH keys", "name", serverName)
-	sshKey, _, err := client.SSHKey.GetByName(ctx, sshKeyName)
-	if err != nil {
-		return "", fmt.Errorf("failed to fetch SSH key: %w", err)
-	}
-	if sshKey == nil {
-		return "", fmt.Errorf("SSH key %q not found", sshKeyName)
-	}
-	slog.Info("found SSH key", "key_name", sshKeyName)
-
-	enableIPv4 := true
-	enableIPv6 := false
-
 	result, _, err := client.Server.Create(ctx, hcloud.ServerCreateOpts{
 		Name: serverName,
 		ServerType: &hcloud.ServerType{
@@ -152,7 +138,6 @@ func createServer(ctx context.Context, client *hcloud.Client, serverName, captai
 		Image: &hcloud.Image{
 			Name: imageName,
 		},
-		SSHKeys:  []*hcloud.SSHKey{sshKey},
 		Location: &hcloud.Location{Name: location},
 		UserData: userData,
 		Labels: map[string]string{
@@ -160,8 +145,8 @@ func createServer(ctx context.Context, client *hcloud.Client, serverName, captai
 			"chisel_node":    "True",
 		},
 		PublicNet: &hcloud.ServerCreatePublicNet{
-			EnableIPv4: enableIPv4,
-			EnableIPv6: enableIPv6,
+			EnableIPv4: true,
+			EnableIPv6: false,
 		},
 	})
 	if err != nil {
