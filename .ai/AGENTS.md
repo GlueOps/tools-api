@@ -6,6 +6,8 @@ This file provides guidance to AI coding assistants when working with code in th
 
 tools-api is a FastAPI service providing internal REST APIs for GlueOps platform engineers. It manages AWS accounts, cloud storage (MinIO), Hetzner infrastructure (Chisel load balancers), GitHub organization setup, Kubernetes/ArgoCD manifest generation, and Opsgenie alerting.
 
+A companion Go CLI (`cli/`) allows engineers to interact with the API from headless Linux machines. See [`cli/.ai/AGENTS.md`](../cli/.ai/AGENTS.md) for CLI-specific guidance.
+
 ## Development Setup
 
 ```bash
@@ -35,9 +37,10 @@ The Dockerfile uses `python:3.14-slim` as base, installs dependencies via pipenv
 ## Architecture
 
 - **`app/main.py`** — FastAPI app entry point. Defines all API routes, global exception handler, health/version endpoints. Routes redirect `/` to `/docs`.
-- **`app/schemas/schemas.py`** — Pydantic request/response models for all endpoints.
+- **`app/schemas/schemas.py`** — Pydantic request/response models for all endpoints (including `VersionResponse` for `/version`). Examples and descriptions defined here are the single source of truth — the CLI reads them from the embedded OpenAPI spec at compile time.
 - **`app/util/`** — Business logic modules, one per domain: `storage.py` (MinIO), `github.py`, `hetzner.py`, `aws_setup_test_account_credentials.py`, `chisel.py`, `captain_manifests.py`, `opsgenie.py`.
 - **`app/templates/captain_manifests/`** — Jinja2 templates (`.yaml.j2`) for generating Kubernetes manifests (Namespace, AppProject, ApplicationSet).
+- **`cli/`** — Go CLI binary. See [`cli/.ai/AGENTS.md`](../cli/.ai/AGENTS.md).
 
 All routes are defined directly in `main.py` (no router separation). Each route delegates to a corresponding util module.
 
@@ -52,4 +55,5 @@ GitHub workflow endpoints (`github.py`) dispatch workflows via the GitHub API an
 
 ## CI/CD
 
-GitHub Actions workflow (`.github/workflows/container_image.yaml`) builds and pushes Docker images to GHCR on any push.
+- **`.github/workflows/container_image.yaml`** — Builds and pushes Docker images to GHCR on any push.
+- **`.github/workflows/cli_release.yaml`** — Builds CLI binaries on every push, uploads as workflow artifacts, and creates a GitHub Release tagged with `github.ref_name`. Cross-compiles for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64.

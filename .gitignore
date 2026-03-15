@@ -163,3 +163,8 @@ cython_debug/
 
 # ignore devbox
 .devbox
+
+# Go CLI build artifacts
+cli/tools
+cli/tools-linux-*
+cli/tools-darwin-*

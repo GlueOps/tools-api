@@ -4,6 +4,13 @@ from typing import Dict
 class Message(BaseModel):
     message: str = Field(...,example = 'Success')
 
+class VersionResponse(BaseModel):
+    version: str = Field(..., example='v1.0.0')
+    commit_sha: str = Field(..., example='abc1234567890def1234567890abcdef12345678')
+    short_sha: str = Field(..., example='abc1234')
+    build_timestamp: str = Field(..., example='2026-01-01T00:00:00Z')
+    git_ref: str = Field(..., example='main')
+
 class ChiselNodesRequest(BaseModel):
     captain_domain: str = Field(..., example='nonprod.foobar.onglueops.rocks')
     node_count: int = Field(

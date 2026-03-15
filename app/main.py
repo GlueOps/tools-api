@@ -5,7 +5,7 @@ from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, CaptainManifestsRequest, GitHubWorkflowRunStatusRequest
+from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, CaptainManifestsRequest, GitHubWorkflowRunStatusRequest, VersionResponse
 from util import storage, aws_setup_test_account_credentials, github, hetzner, opsgenie, captain_manifests
 from fastapi.responses import RedirectResponse
 
@@ -53,7 +53,7 @@ async def hello(request: StorageBucketsRequest):
     return storage.create_all_buckets(request.captain_domain)
 
 
-@app.post("/v1/setup-aws-account-credentials", response_class=PlainTextResponse, summary="Wether it's to create an EKS cluster or to test other things out in an isolated AWS account. These creds will give you Admin level access to the requested account.")
+@app.post("/v1/setup-aws-account-credentials", response_class=PlainTextResponse, summary="Whether it's to create an EKS cluster or to test other things out in an isolated AWS account. These creds will give you Admin level access to the requested account.")
 async def create_credentials_for_aws_captain_account(request: AwsCredentialsRequest):
     """
     If you are testing in AWS/EKS you will need an AWS account to test with. This request will provide you with admin level credentials to the sub account you specify.
@@ -88,7 +88,7 @@ async def reset_github_organization(request: ResetGitHubOrganizationRequest):
      
      This will reset your deployment-configurations repository, it'll bring over a working regcred, and application repos with working github actions so that you can quickly work on the GlueOps stack.
 
-     WARNING: By default delete_all_existing_repos = True. Please set it to False or make a manual backup if you are concerned about any dataloss within your tenant org (e.g. github.com/development-tenant-*)
+     WARNING: By default delete_all_existing_repos = True. Please set it to False or make a manual backup if you are concerned about any data loss within your tenant org (e.g. github.com/development-tenant-*)
 
     """
     return github.reset_tenant_github_organization(request.captain_domain, request.delete_all_existing_repos, request.custom_domain, request.enable_custom_domain)
@@ -153,12 +153,12 @@ async def health():
     return {"status": "healthy"}
 
 
-@app.get("/version", summary="Contains version information about this tools-api")
+@app.get("/version", response_model=VersionResponse, summary="Contains version information about this tools-api")
 async def version():
-    return {
-        "version": os.getenv("VERSION", "UNKNOWN"),
-        "commit_sha": os.getenv("COMMIT_SHA", "UNKNOWN"),
-        "short_sha": os.getenv("SHORT_SHA", "UNKNOWN"),
-        "build_timestamp": os.getenv("BUILD_TIMESTAMP", "UNKNOWN"),
-        "git_ref": os.getenv("GIT_REF", "UNKNOWN")
-    }
+    return VersionResponse(
+        version=os.getenv("VERSION", "UNKNOWN"),
+        commit_sha=os.getenv("COMMIT_SHA", "UNKNOWN"),
+        short_sha=os.getenv("SHORT_SHA", "UNKNOWN"),
+        build_timestamp=os.getenv("BUILD_TIMESTAMP", "UNKNOWN"),
+        git_ref=os.getenv("GIT_REF", "UNKNOWN"),
+    )
