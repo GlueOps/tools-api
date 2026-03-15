@@ -110,7 +110,7 @@ func main() {
   <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
   <script>
     SwaggerUIBundle({
-      url: '/openapi',
+      url: '/openapi.json',
       dom_id: '#swagger-ui',
       defaultModelsExpandDepth: -1
     });
