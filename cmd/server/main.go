@@ -119,6 +119,9 @@ func main() {
 		Path:        "/v1/storage/buckets",
 		Summary:     "Create/Re-create storage buckets that can be used for V2 of our monitoring stack that is Otel based",
 		Description: "Note: this can be a DESTRUCTIVE operation. For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.",
+		Responses: map[string]*huma.Response{
+			"200": {Description: "Storage configuration", Content: map[string]*huma.MediaType{"text/plain": {Schema: &huma.Schema{Type: "string"}}}},
+		},
 	}, handlers.CreateStorageBuckets)
 
 	// Register AWS credentials endpoint (ticket 07).
@@ -128,6 +131,9 @@ func main() {
 		Path:        "/v1/aws/credentials",
 		Summary:     "Whether it's to create an EKS cluster or to test other things out in an isolated AWS account. These creds will give you Admin level access to the requested account.",
 		Description: "If you are testing in AWS/EKS you will need an AWS account to test with. This request will provide you with admin level credentials to the sub account you specify.\nThis can also be used to just get Admin access to a desired sub account.",
+		Responses: map[string]*huma.Response{
+			"200": {Description: "AWS credentials", Content: map[string]*huma.MediaType{"text/plain": {Schema: &huma.Schema{Type: "string"}}}},
+		},
 	}, handlers.CreateAwsCredentials)
 
 	// Register GitHub workflow dispatch endpoints (ticket 05).
@@ -170,6 +176,9 @@ func main() {
 		Path:        "/v1/chisel",
 		Summary:     "Creates Chisel nodes for dev/k3d clusters. This allows us to mimic a Cloud Controller for Loadbalancers (e.g. NLBs with EKS)",
 		Description: "If you are testing within k3ds you will need chisel to provide you with load balancers.\nFor a provided captain_domain this will delete any existing chisel nodes and provision new ones.\nNote: this will generally result in new IPs being provisioned.",
+		Responses: map[string]*huma.Response{
+			"200": {Description: "Chisel YAML manifest", Content: map[string]*huma.MediaType{"text/plain": {Schema: &huma.Schema{Type: "string"}}}},
+		},
 	}, handlers.CreateChiselNodes)
 
 	huma.Register(api, huma.Operation{
@@ -187,6 +196,9 @@ func main() {
 		Path:        "/v1/opsgenie/manifest",
 		Summary:     "Creates Opsgenie Alerts Manifest",
 		Description: "Create a opsgenie/alertmanager configuration. Do this for any clusters you want alerts on.",
+		Responses: map[string]*huma.Response{
+			"200": {Description: "Opsgenie manifest", Content: map[string]*huma.MediaType{"text/plain": {Schema: &huma.Schema{Type: "string"}}}},
+		},
 	}, handlers.CreateOpsgenieManifest)
 
 	// Register captain manifests endpoint (ticket 10).
@@ -196,6 +208,9 @@ func main() {
 		Path:        "/v1/captain/manifests",
 		Summary:     "Generate captain manifests",
 		Description: "Generate YAML manifests for captain deployments based on the provided configuration.",
+		Responses: map[string]*huma.Response{
+			"200": {Description: "Captain manifests YAML", Content: map[string]*huma.MediaType{"text/plain": {Schema: &huma.Schema{Type: "string"}}}},
+		},
 	}, handlers.CreateCaptainManifests)
 
 	// Start HTTP server on 0.0.0.0:8000.
