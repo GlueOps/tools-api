@@ -4,27 +4,29 @@ This file provides guidance to AI coding assistants when working with code in th
 
 ## Project Overview
 
-tools-api is a FastAPI service providing internal REST APIs for GlueOps platform engineers. It manages AWS accounts, cloud storage (MinIO), Hetzner infrastructure (Chisel load balancers), GitHub organization setup, Kubernetes/ArgoCD manifest generation, and Opsgenie alerting.
+tools-api is a Go API service (using the Huma framework on Chi router) providing internal REST APIs for GlueOps platform engineers. It manages AWS accounts, cloud storage (MinIO), Hetzner infrastructure (Chisel load balancers), GitHub organization setup, Kubernetes/ArgoCD manifest generation, and Opsgenie alerting.
 
 A companion Go CLI (`cli/`) allows engineers to interact with the API from headless Linux machines. See [`cli/.ai/AGENTS.md`](../cli/.ai/AGENTS.md) for CLI-specific guidance.
 
 ## Development Setup
 
+All builds use Docker — no local Go toolchain is required.
+
 ```bash
-# Enter development shell (launches pipenv shell via devbox)
-devbox run dev
+# Build the server
+docker build -t tools-api .
 
-# Install dependencies
-pipenv install
+# Run the server
+docker run --rm -p 8000:8000 tools-api
 
-# Run dev server (hot reload)
-fastapi dev
-
-# Run production server
-fastapi run
+# Run Go commands via Docker
+docker run --rm -v "$(pwd):/app" -w /app golang:1.24-alpine go build ./...
+docker run --rm -v "$(pwd):/app" -w /app golang:1.24-alpine go test ./...
 ```
 
-Required environment variables: `AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY`, `AWS_GLUEOPS_ROCKS_ORG_SECRET_KEY`, `HCLOUD_TOKEN`, `GITHUB_TOKEN`, `MINIO_S3_ACCESS_KEY_ID`, `MINIO_S3_SECRET_KEY`, `HETZNER_STORAGE_REGION=hel1`.
+Required environment variables: `AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY`, `AWS_GLUEOPS_ROCKS_ORG_SECRET_KEY`, `HCLOUD_TOKEN`, `GITHUB_TOKEN`, `MINIO_S3_ACCESS_KEY_ID`, `MINIO_S3_SECRET_KEY`, `HETZNER_STORAGE_REGION`. Optional: `LOG_LEVEL` (default `INFO`).
+
+Environment variables are NOT required at startup — the app fails lazily when an endpoint is called without the needed env var.
 
 ## Build
 
@@ -32,28 +34,34 @@ Required environment variables: `AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY`, `AWS_GLUEOPS
 docker build -t tools-api .
 ```
 
-The Dockerfile uses `python:3.14-slim` as base, installs dependencies via pipenv (`--system`), and accepts build args: `VERSION`, `COMMIT_SHA`, `SHORT_SHA`, `BUILD_TIMESTAMP`, `GIT_REF`. Devbox is used for local development only (Python 3.13 via nixpkgs), not in container builds.
+The Dockerfile uses a multi-stage build: `golang:1.24-alpine` for compilation, `alpine:3.21` for runtime. Build args: `VERSION`, `COMMIT_SHA`, `SHORT_SHA`, `BUILD_TIMESTAMP`, `GIT_REF` (injected via ldflags into `internal/version`).
 
 ## Architecture
 
-- **`app/main.py`** — FastAPI app entry point. Defines all API routes, global exception handler, health/version endpoints. Routes redirect `/` to `/docs`.
-- **`app/schemas/schemas.py`** — Pydantic request/response models for all endpoints (including `VersionResponse` for `/version`). Examples and descriptions defined here are the single source of truth — the CLI reads them from the embedded OpenAPI spec at compile time.
-- **`app/util/`** — Business logic modules, one per domain: `storage.py` (MinIO), `github.py`, `hetzner.py`, `aws_setup_test_account_credentials.py`, `chisel.py`, `captain_manifests.py`, `opsgenie.py`.
-- **`app/templates/captain_manifests/`** — Jinja2 templates (`.yaml.j2`) for generating Kubernetes manifests (Namespace, AppProject, ApplicationSet).
+- **`cmd/server/main.go`** — Go API server entry point. Uses Huma framework on Chi router. Defines all API routes, audit logging middleware, custom error handling, graceful shutdown (SIGTERM/SIGINT). Health endpoint (`/health`) and root redirect (`/ → /docs`) are registered directly on Chi (excluded from OpenAPI).
+- **`pkg/handlers/`** — HTTP handler functions for each domain: `storage.go`, `aws.go`, `github.go`, `chisel.go`, `opsgenie.go`, `captain.go`, `health.go`, `version.go`.
+- **`pkg/types/`** — Shared request/response type definitions (`types.go`). These are the single source of truth for API contracts.
+- **`pkg/`** — Business logic modules, one per domain: `storage/`, `aws/`, `github/`, `hetzner/`, `chisel/`, `captain/`, `opsgenie/`.
+- **`pkg/util/`** — Utility functions (e.g., `plaintext.go` for plain-text response helpers).
+- **`internal/version/`** — Build-time injected version variables (ldflags).
 - **`cli/`** — Go CLI binary. See [`cli/.ai/AGENTS.md`](../cli/.ai/AGENTS.md).
 
-All routes are defined directly in `main.py` (no router separation). Each route delegates to a corresponding util module.
+### Key Design Decisions
 
-GitHub workflow endpoints (`github.py`) dispatch workflows via the GitHub API and poll for the resulting run ID. They return JSON with `status_code`, `all_jobs_url`, `run_id`, and `run_url`. A separate `/v1/github/workflow-run-status` endpoint accepts any GitHub Actions run URL and returns its current status. All GitHub API calls use a centralized `_get_headers()` with the `X-GitHub-Api-Version` header.
+- **Plain-text endpoints** — Five endpoints return `Content-Type: text/plain` (storage buckets, AWS credentials, chisel, opsgenie manifest, captain manifests). These use custom Huma response handling to avoid JSON wrapping.
+- **Error responses** — Custom error format `{"status": N, "detail": "..."}` via `huma.NewError` override. Stack traces logged server-side only, never in responses.
+- **Graceful shutdown** — Handles SIGTERM/SIGINT with 25-second timeout for in-flight requests.
+- **Audit logging** — Middleware logs every request with `X-Forwarded-User` and `X-Forwarded-Email` from oauth2-proxy.
 
 ## Key Dependencies
 
-- **`glueops-helpers`** — Internal library (installed from GitHub) providing `setup_logging` and shared utilities.
-- **`minio`** — S3-compatible storage client.
-- **`boto3`** — AWS SDK (account credential management via STS/Organizations).
-- **`hcloud`** — Hetzner Cloud API client (Chisel node provisioning).
+- **`github.com/danielgtaylor/huma/v2`** — API framework (OpenAPI 3.1, validation, docs).
+- **`github.com/go-chi/chi/v5`** — HTTP router.
+- **`github.com/aws/aws-sdk-go-v2`** — AWS SDK (account credential management via STS/Organizations).
+- **`github.com/hetznercloud/hcloud-go/v2`** — Hetzner Cloud API client.
+- **`github.com/minio/minio-go/v7`** — S3-compatible storage client.
 
 ## CI/CD
 
-- **`.github/workflows/container_image.yaml`** — Builds and pushes Docker images to GHCR on any push.
+- **`.github/workflows/container_image.yaml`** — Runs golangci-lint and govulncheck, then builds and pushes Docker images to GHCR on any push.
 - **`.github/workflows/cli_release.yaml`** — Builds CLI binaries on every push, uploads as workflow artifacts, and creates a GitHub Release tagged with `github.ref_name`. Cross-compiles for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64.

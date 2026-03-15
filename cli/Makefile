@@ -1,5 +1,4 @@
 GO_IMAGE := golang:1.24-alpine@sha256:8bee1901f1e530bfb4a7850aa7a479d17ae3a18beb6e09064ed54cfd245b7191
-TOOLS_API_IMAGE := tools-api-spec
 MODULE := github.com/GlueOps/tools-api/cli
 VERSION ?= dev
 COMMIT_SHA ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
@@ -14,17 +13,7 @@ LDFLAGS := -s -w \
 	-X $(MODULE)/internal/version.BuildTimestamp=$(BUILD_TIMESTAMP) \
 	-X $(MODULE)/internal/version.GitRef=$(GIT_REF)
 
-.PHONY: generate build build-all clean
-
-# Export OpenAPI spec from FastAPI and regenerate Go client
-generate:
-	docker build -t $(TOOLS_API_IMAGE) ..
-	docker run --rm $(TOOLS_API_IMAGE) python -c \
-		"import sys; sys.path.insert(0, 'app'); from main import app; import json; print(json.dumps(app.openapi(), indent=2))" \
-		> openapi.json
-	docker run --rm -v "$$(pwd):/app" -w /app $(GO_IMAGE) sh -c \
-		"go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.6.0 && oapi-codegen -config oapi-codegen.yaml openapi.json"
-	cp openapi.json internal/spec/openapi.json
+.PHONY: build build-all clean
 
 # Build for current platform
 build:

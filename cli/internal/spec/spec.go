@@ -20,8 +20,9 @@ type schema struct {
 	Components struct {
 		Schemas map[string]struct {
 			Properties map[string]struct {
-				Example     json.RawMessage `json:"example"`
-				Description string          `json:"description"`
+				Example  json.RawMessage   `json:"example"`
+				Examples []json.RawMessage `json:"examples"`
+				Description string         `json:"description"`
 			} `json:"properties"`
 		} `json:"schemas"`
 	} `json:"components"`
@@ -36,6 +37,7 @@ func init() {
 }
 
 // Example returns the example value for a schema field, or "" if not found.
+// Supports both OpenAPI 3.0 "example" (single value) and 3.1 "examples" (array).
 func Example(schemaName, fieldName string) string {
 	s, ok := parsed.Components.Schemas[schemaName]
 	if !ok {
@@ -45,11 +47,21 @@ func Example(schemaName, fieldName string) string {
 	if !ok {
 		return ""
 	}
-	var val interface{}
-	if err := json.Unmarshal(prop.Example, &val); err != nil {
-		return ""
+	// Try "example" first (OpenAPI 3.0 style).
+	if len(prop.Example) > 0 {
+		var val interface{}
+		if err := json.Unmarshal(prop.Example, &val); err == nil {
+			return fmt.Sprintf("%v", val)
+		}
 	}
-	return fmt.Sprintf("%v", val)
+	// Fall back to "examples" array (OpenAPI 3.1 / Huma style).
+	if len(prop.Examples) > 0 {
+		var val interface{}
+		if err := json.Unmarshal(prop.Examples[0], &val); err == nil {
+			return fmt.Sprintf("%v", val)
+		}
+	}
+	return ""
 }
 
 // FlagDesc returns a flag description with the example from the OpenAPI spec appended.

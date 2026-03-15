@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"context"
-
-	"github.com/GlueOps/tools-api/cli/api"
 	"github.com/GlueOps/tools-api/cli/internal/spec"
 	"github.com/spf13/cobra"
 )
@@ -25,13 +22,10 @@ var chiselCreateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		resp, err := client.CreateChiselNodesV1ChiselPost(
-			context.Background(),
-			api.CreateChiselNodesV1ChiselPostJSONRequestBody{
-				CaptainDomain: captainDomain,
-				NodeCount:     &nodeCount,
-			},
-		)
+		resp, err := client.post("/v1/chisel", map[string]interface{}{
+			"captain_domain": captainDomain,
+			"node_count":     nodeCount,
+		})
 		if err != nil {
 			return err
 		}
@@ -41,20 +35,17 @@ var chiselCreateCmd = &cobra.Command{
 
 var chiselDeleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: spec.Summary("/v1/chisel", "delete", "Delete chisel nodes"),
-	Long:  spec.Description("/v1/chisel", "delete", ""),
+	Short: spec.Summary("/v1/chisel/delete", "post", "Delete chisel nodes"),
+	Long:  spec.Description("/v1/chisel/delete", "post", ""),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		captainDomain, _ := cmd.Flags().GetString("captain-domain")
 		client, err := newClient()
 		if err != nil {
 			return err
 		}
-		resp, err := client.DeleteChiselNodesV1ChiselDelete(
-			context.Background(),
-			api.DeleteChiselNodesV1ChiselDeleteJSONRequestBody{
-				CaptainDomain: captainDomain,
-			},
-		)
+		resp, err := client.post("/v1/chisel/delete", map[string]string{
+			"captain_domain": captainDomain,
+		})
 		if err != nil {
 			return err
 		}
@@ -63,11 +54,11 @@ var chiselDeleteCmd = &cobra.Command{
 }
 
 func init() {
-	chiselCreateCmd.Flags().String("captain-domain", "", spec.FlagDesc("Captain domain", "ChiselNodesRequest", "captain_domain"))
+	chiselCreateCmd.Flags().String("captain-domain", "", spec.FlagDesc("Captain domain", "ChiselNodesRequestBody", "captain_domain"))
 	chiselCreateCmd.MarkFlagRequired("captain-domain")
-	chiselCreateCmd.Flags().Int("node-count", 3, spec.FlagDesc("Number of exit nodes (1-6)", "ChiselNodesRequest", "node_count"))
+	chiselCreateCmd.Flags().Int("node-count", 3, spec.FlagDesc("Number of exit nodes (1-6)", "ChiselNodesRequestBody", "node_count"))
 
-	chiselDeleteCmd.Flags().String("captain-domain", "", spec.FlagDesc("Captain domain", "ChiselNodesDeleteRequest", "captain_domain"))
+	chiselDeleteCmd.Flags().String("captain-domain", "", spec.FlagDesc("Captain domain", "ChiselNodesDeleteRequestBody", "captain_domain"))
 	chiselDeleteCmd.MarkFlagRequired("captain-domain")
 
 	chiselCmd.AddCommand(chiselCreateCmd)

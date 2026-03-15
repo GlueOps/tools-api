@@ -19,28 +19,9 @@ make build
 # Build for all release platforms (linux/darwin × amd64/arm64)
 make build-all
 
-# Regenerate OpenAPI client after API changes
-make generate
-
 # Clean build artifacts
 make clean
 ```
-
-## Regenerating the API Client
-
-When the API changes (new endpoints, schema changes, updated descriptions/examples), run:
-
-```bash
-cd cli
-make generate
-```
-
-This does three things:
-1. Builds the tools-api Docker image and exports the OpenAPI spec to `openapi.json`
-2. Runs `oapi-codegen` (pinned to v2.6.0) via Docker to regenerate `api/generated.go`
-3. Copies `openapi.json` to `internal/spec/openapi.json` for embedding
-
-The generated client (`api/generated.go`) and both copies of `openapi.json` are committed to the repo.
 
 ## Architecture
 
@@ -51,10 +32,6 @@ cli/
 ├── main.go                         # Entry point
 ├── go.mod / go.sum                 # Go module (github.com/GlueOps/tools-api/cli)
 ├── Makefile                        # Docker-based build targets
-├── openapi.json                    # Exported OpenAPI spec from FastAPI
-├── oapi-codegen.yaml               # oapi-codegen config (generates types + client)
-├── api/
-│   └── generated.go                # Auto-generated typed client — DO NOT EDIT
 ├── cmd/
 │   ├── root.go                     # Root command, persistent flags, auth/update pre-run
 │   ├── client.go                   # Authenticated API client helper + response handler (pretty-prints JSON)
@@ -85,16 +62,16 @@ cli/
 
 ### Key Design Decisions
 
-- **OpenAPI as single source of truth** — CLI flag descriptions, command summaries, and long descriptions are all read from the embedded `openapi.json` at compile time via `internal/spec`. When API docstrings or schema examples change, `make generate` + rebuild picks them up automatically without editing Go code.
-- **Auto-generated API client** — `api/generated.go` is produced by `oapi-codegen` from the OpenAPI spec. Each command file in `cmd/` constructs requests using generated types and calls generated client methods.
+- **OpenAPI as single source of truth** — CLI flag descriptions, command summaries, and long descriptions are all read from the embedded `openapi.json` at compile time via `internal/spec`. When API docstrings or schema examples change, rebuild the CLI to pick them up automatically.
+- **Shared types via OpenAPI contract** — CLI maintains its own types (does NOT import from the API server module). Server and CLI only share the OpenAPI contract. This avoids module coupling and allows `go install` to work.
 - **Auth via PersistentPreRunE** — `root.go` checks for a valid token before every command except `login`, `logout`, `version`, `completion`, `help`, and the root command itself (so `tools --help` works without login). Expired tokens are automatically refreshed.
 - **Self-update** — On every invocation, the CLI checks `GET /version` on the API. If the version differs (and isn't a placeholder like `UNKNOWN` or `dev`), it downloads the matching binary from GitHub releases and replaces itself.
 - **Config directory** — `~/.config/glueops/tools-cli/` stores `tokens.json`.
 
 ### Adding a New Command
 
-1. Add the endpoint to `app/main.py` and schema to `app/schemas/schemas.py`
-2. Run `cd cli && make generate` to update the client and spec
+1. Add the endpoint to the Go API server (`cmd/server/main.go`, `pkg/handlers/`, `pkg/types/`)
+2. Update `cli/internal/spec/openapi.json` with the new OpenAPI spec
 3. Create `cli/cmd/<command>.go`:
    - Use `spec.Summary()` and `spec.Description()` for `Short`/`Long`
    - Use `spec.FlagDesc()` for flag descriptions

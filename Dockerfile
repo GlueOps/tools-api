@@ -1,25 +1,28 @@
-FROM python:3.14-slim
+# Build stage
+FROM golang:1.24-alpine AS builder
 
-WORKDIR /code
-
-# Accept build arguments for versioning
 ARG VERSION=UNKNOWN
 ARG COMMIT_SHA=UNKNOWN
 ARG SHORT_SHA=UNKNOWN
 ARG BUILD_TIMESTAMP=UNKNOWN
 ARG GIT_REF=UNKNOWN
 
-ENV VERSION=${VERSION}
-ENV COMMIT_SHA=${COMMIT_SHA}
-ENV SHORT_SHA=${SHORT_SHA}
-ENV BUILD_TIMESTAMP=${BUILD_TIMESTAMP}
-ENV GIT_REF=${GIT_REF}
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build \
+    -ldflags="-s -w \
+      -X github.com/GlueOps/tools-api/internal/version.Version=${VERSION} \
+      -X github.com/GlueOps/tools-api/internal/version.CommitSHA=${COMMIT_SHA} \
+      -X github.com/GlueOps/tools-api/internal/version.ShortSHA=${SHORT_SHA} \
+      -X github.com/GlueOps/tools-api/internal/version.BuildTimestamp=${BUILD_TIMESTAMP} \
+      -X github.com/GlueOps/tools-api/internal/version.GitRef=${GIT_REF}" \
+    -o /server ./cmd/server
 
-RUN pip install --no-cache-dir pipenv
-
-COPY Pipfile Pipfile.lock ./
-RUN pipenv install --system
-
-COPY app/ /code/app
-
-CMD ["fastapi", "run"]
+# Runtime stage
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates
+COPY --from=builder /server /server
+EXPOSE 8000
+ENTRYPOINT ["/server"]

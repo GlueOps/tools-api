@@ -1,677 +1,303 @@
 {
-  "openapi": "3.1.0",
-  "info": {
-    "title": "Tools API",
-    "description": "Various APIs to help you speed up your development and testing.",
-    "version": "UNKNOWN"
-  },
-  "paths": {
-    "/v1/storage-buckets": {
-      "post": {
-        "summary": "Create/Re-create storage buckets that can be used for V2 of our monitoring stack that is Otel based",
-        "description": "Note: this can be a DESTRUCTIVE operation\nFor the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.",
-        "operationId": "hello_v1_storage_buckets_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StorageBucketsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/setup-aws-account-credentials": {
-      "post": {
-        "summary": "Whether it's to create an EKS cluster or to test other things out in an isolated AWS account. These creds will give you Admin level access to the requested account.",
-        "description": "If you are testing in AWS/EKS you will need an AWS account to test with. This request will provide you with admin level credentials to the sub account you specify.\nThis can also be used to just get Admin access to a desired sub account.",
-        "operationId": "create_credentials_for_aws_captain_account_v1_setup_aws_account_credentials_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AwsCredentialsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/nuke-aws-captain-account": {
-      "delete": {
-        "summary": "Run this after you are done testing within AWS. This will clean up orphaned resources. Note: you may have to run this 2x.",
-        "description": "Submit the AWS account name you want to nuke (e.g. glueops-captain-foobar)",
-        "operationId": "nuke_aws_captain_account_v1_nuke_aws_captain_account_delete",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AwsNukeAccountRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/nuke-captain-domain-data": {
-      "delete": {
-        "summary": "Deletes all backups/data for a provided captain_domain. Running this before a cluster creation helps ensure a clean environment.",
-        "description": "Submit the captain_domain/tenant you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will delete all backups and data for the provided captain_domain.\n\nThis will remove things like the vault and cert-manager backups.\n\nNote: this may not delete things like Loki/Thanos/Tempo data as that may be managed outside of AWS.",
-        "operationId": "nuke_captain_domain_data_v1_nuke_captain_domain_data_delete",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CaptainDomainNukeDataAndBackupsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/reset-github-organization": {
-      "delete": {
-        "summary": "Resets the GitHub Organization to make it easier to get a new dev cluster runner for Dev",
-        "description": "Submit the dev captain_domain you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will reset the GitHub organization so that you can easily get up and running with a new dev cluster.\n\nThis will reset your deployment-configurations repository, it'll bring over a working regcred, and application repos with working github actions so that you can quickly work on the GlueOps stack.\n\nWARNING: By default delete_all_existing_repos = True. Please set it to False or make a manual backup if you are concerned about any data loss within your tenant org (e.g. github.com/development-tenant-*)",
-        "operationId": "reset_github_organization_v1_reset_github_organization_delete",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResetGitHubOrganizationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/github/workflow-run-status": {
-      "post": {
-        "summary": "Get the status of a GitHub Actions workflow run",
-        "description": "Provide a GitHub Actions run URL (e.g. https://github.com/owner/repo/actions/runs/12345678) and get the current status of that workflow run.\nWorks for any repo the configured GITHUB_TOKEN has read access to.",
-        "operationId": "get_workflow_run_status_v1_github_workflow_run_status_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GitHubWorkflowRunStatusRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/chisel": {
-      "post": {
-        "summary": "Creates Chisel nodes for dev/k3d clusters. This allows us to mimic a Cloud Controller for Loadbalancers (e.g. NLBs with EKS)",
-        "description": "If you are testing within k3ds you will need chisel to provide you with load balancers.\nFor a provided captain_domain this will delete any existing chisel nodes and provision new ones.\nNote: this will generally result in new IPs being provisioned.",
-        "operationId": "create_chisel_nodes_v1_chisel_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChiselNodesRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Deletes your chisel nodes. Please run this when you are done with development to save on costs.",
-        "description": "When you are done testing with k3ds this will delete your chisel nodes and save on costs.",
-        "operationId": "delete_chisel_nodes_v1_chisel_delete",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChiselNodesDeleteRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/opsgenie": {
-      "post": {
-        "summary": "Creates Opsgenie Alerts Manifest",
-        "description": "Create a opsgenie/alertmanager configuration. Do this for any clusters you want alerts on.",
-        "operationId": "create_opsgeniealerts_manifest_v1_opsgenie_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OpsgenieAlertsManifestRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/captain-manifests": {
-      "post": {
-        "summary": "Generate captain manifests",
-        "description": "Generate YAML manifests for captain deployments based on the provided configuration.",
-        "operationId": "create_captain_manifests_v1_captain_manifests_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CaptainManifestsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/version": {
-      "get": {
-        "summary": "Contains version information about this tools-api",
-        "operationId": "version_version_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VersionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
   "components": {
     "schemas": {
-      "AwsCredentialsRequest": {
+      "AwsCredentialsRequestBody": {
+        "additionalProperties": false,
         "properties": {
           "aws_sub_account_name": {
-            "type": "string",
-            "title": "Aws Sub Account Name",
-            "example": "glueops-captain-foobar"
+            "description": "AWS sub-account name",
+            "examples": [
+              "glueops-captain-foobar"
+            ],
+            "minLength": 1,
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "aws_sub_account_name"
         ],
-        "title": "AwsCredentialsRequest"
+        "type": "object"
       },
-      "AwsNukeAccountRequest": {
+      "AwsNukeAccountRequestBody": {
+        "additionalProperties": false,
         "properties": {
           "aws_sub_account_name": {
-            "type": "string",
-            "title": "Aws Sub Account Name",
-            "example": "glueops-captain-foobar"
+            "description": "AWS sub-account name",
+            "examples": [
+              "glueops-captain-foobar"
+            ],
+            "minLength": 1,
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "aws_sub_account_name"
         ],
-        "title": "AwsNukeAccountRequest"
+        "type": "object"
       },
-      "CaptainDomainNukeDataAndBackupsRequest": {
+      "CaptainDomainNukeDataAndBackupsRequestBody": {
+        "additionalProperties": false,
         "properties": {
           "captain_domain": {
-            "type": "string",
-            "title": "Captain Domain",
-            "example": "nonprod.foobar.onglueops.rocks"
+            "description": "Captain domain for the cluster",
+            "examples": [
+              "nonprod.foobar.onglueops.rocks"
+            ],
+            "minLength": 1,
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "captain_domain"
         ],
-        "title": "CaptainDomainNukeDataAndBackupsRequest"
+        "type": "object"
       },
-      "CaptainManifestsRequest": {
+      "CaptainManifestsRequestBody": {
+        "additionalProperties": false,
         "properties": {
           "captain_domain": {
-            "type": "string",
-            "title": "Captain Domain",
-            "example": "nonprod.foobar.onglueops.rocks"
-          },
-          "tenant_github_organization_name": {
-            "type": "string",
-            "title": "Tenant Github Organization Name",
-            "example": "development-tenant-foobar"
+            "description": "Captain domain for the cluster",
+            "examples": [
+              "nonprod.foobar.onglueops.rocks"
+            ],
+            "minLength": 1,
+            "type": "string"
           },
           "tenant_deployment_configurations_repository_name": {
-            "type": "string",
-            "title": "Tenant Deployment Configurations Repository Name",
-            "example": "deployment-configurations"
+            "description": "Tenant deployment configurations repository name",
+            "examples": [
+              "deployment-configurations"
+            ],
+            "minLength": 1,
+            "type": "string"
+          },
+          "tenant_github_organization_name": {
+            "description": "Tenant GitHub organization name",
+            "examples": [
+              "development-tenant-foobar"
+            ],
+            "minLength": 1,
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "captain_domain",
           "tenant_github_organization_name",
           "tenant_deployment_configurations_repository_name"
         ],
-        "title": "CaptainManifestsRequest"
+        "type": "object"
       },
-      "ChiselNodesDeleteRequest": {
+      "ChiselNodesDeleteRequestBody": {
+        "additionalProperties": false,
         "properties": {
           "captain_domain": {
-            "type": "string",
-            "title": "Captain Domain",
-            "example": "nonprod.foobar.onglueops.rocks"
+            "description": "Captain domain for the cluster",
+            "examples": [
+              "nonprod.foobar.onglueops.rocks"
+            ],
+            "minLength": 1,
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "captain_domain"
         ],
-        "title": "ChiselNodesDeleteRequest"
+        "type": "object"
       },
-      "ChiselNodesRequest": {
+      "ChiselNodesRequestBody": {
+        "additionalProperties": false,
         "properties": {
           "captain_domain": {
-            "type": "string",
-            "title": "Captain Domain",
-            "example": "nonprod.foobar.onglueops.rocks"
+            "description": "Captain domain for the cluster",
+            "examples": [
+              "nonprod.foobar.onglueops.rocks"
+            ],
+            "minLength": 1,
+            "type": "string"
           },
           "node_count": {
-            "type": "integer",
-            "maximum": 6.0,
-            "minimum": 1.0,
-            "title": "Node Count",
-            "description": "Number of exit nodes to create (1-6, default: 3)",
             "default": 3,
-            "example": 3
+            "description": "Number of exit nodes to create (1-6, default: 3)",
+            "examples": [
+              3
+            ],
+            "format": "int64",
+            "maximum": 6,
+            "minimum": 1,
+            "type": "integer"
           }
         },
-        "type": "object",
         "required": [
-          "captain_domain"
+          "captain_domain",
+          "node_count"
         ],
-        "title": "ChiselNodesRequest"
+        "type": "object"
       },
-      "GitHubWorkflowRunStatusRequest": {
-        "properties": {
-          "run_url": {
-            "type": "string",
-            "title": "Run Url",
-            "example": "https://github.com/internal-GlueOps/gha-tools-api/actions/runs/12345678"
-          }
-        },
-        "type": "object",
-        "required": [
-          "run_url"
-        ],
-        "title": "GitHubWorkflowRunStatusRequest"
-      },
-      "HTTPValidationError": {
+      "ErrorResponse": {
+        "additionalProperties": false,
         "properties": {
           "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
+            "description": "Error detail message",
+            "examples": [
+              "An internal server error occurred."
+            ],
+            "type": "string"
+          },
+          "status": {
+            "description": "HTTP status code",
+            "examples": [
+              500
+            ],
+            "format": "int64",
+            "type": "integer"
           }
         },
-        "type": "object",
-        "title": "HTTPValidationError"
+        "required": [
+          "status",
+          "detail"
+        ],
+        "type": "object"
       },
-      "OpsgenieAlertsManifestRequest": {
+      "MessageResponseBody": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "description": "Response message",
+            "examples": [
+              "Success"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "OpsgenieAlertsManifestRequestBody": {
+        "additionalProperties": false,
         "properties": {
           "captain_domain": {
-            "type": "string",
-            "title": "Captain Domain",
-            "example": "nonprod.foobar.onglueops.rocks"
+            "description": "Captain domain for the cluster",
+            "examples": [
+              "nonprod.foobar.onglueops.rocks"
+            ],
+            "minLength": 1,
+            "type": "string"
           },
           "opsgenie_api_key": {
-            "type": "string",
-            "title": "Opsgenie Api Key",
-            "example": "6825b4ef-4e84-44a1-8450-b46b02852add"
+            "description": "Opsgenie API key",
+            "examples": [
+              "6825b4ef-4e84-44a1-8450-b46b02852add"
+            ],
+            "minLength": 1,
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "captain_domain",
           "opsgenie_api_key"
         ],
-        "title": "OpsgenieAlertsManifestRequest"
+        "type": "object"
       },
-      "ResetGitHubOrganizationRequest": {
+      "ResetGitHubOrganizationRequestBody": {
+        "additionalProperties": false,
         "properties": {
           "captain_domain": {
-            "type": "string",
-            "title": "Captain Domain",
-            "example": "nonprod.foobar.onglueops.rocks"
-          },
-          "delete_all_existing_repos": {
-            "type": "boolean",
-            "title": "Delete All Existing Repos",
-            "example": true
+            "description": "Captain domain for the cluster",
+            "examples": [
+              "nonprod.foobar.onglueops.rocks"
+            ],
+            "minLength": 1,
+            "type": "string"
           },
           "custom_domain": {
-            "type": "string",
-            "title": "Custom Domain",
-            "example": "example.com"
+            "description": "Custom domain for the organization",
+            "examples": [
+              "example.com"
+            ],
+            "minLength": 1,
+            "type": "string"
+          },
+          "delete_all_existing_repos": {
+            "description": "Whether to delete all existing repos in the organization",
+            "examples": [
+              true
+            ],
+            "type": "boolean"
           },
           "enable_custom_domain": {
-            "type": "boolean",
-            "title": "Enable Custom Domain",
-            "example": false
+            "description": "Whether to enable the custom domain",
+            "examples": [
+              false
+            ],
+            "type": "boolean"
           }
         },
-        "type": "object",
         "required": [
           "captain_domain",
           "delete_all_existing_repos",
           "custom_domain",
           "enable_custom_domain"
         ],
-        "title": "ResetGitHubOrganizationRequest"
+        "type": "object"
       },
-      "StorageBucketsRequest": {
+      "StorageBucketsRequestBody": {
+        "additionalProperties": false,
         "properties": {
           "captain_domain": {
-            "type": "string",
-            "title": "Captain Domain",
-            "example": "nonprod.foobar.onglueops.rocks"
+            "description": "Captain domain for the cluster",
+            "examples": [
+              "nonprod.foobar.onglueops.rocks"
+            ],
+            "minLength": 1,
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "captain_domain"
         ],
-        "title": "StorageBucketsRequest"
+        "type": "object"
       },
-      "ValidationError": {
+      "VersionResponseBody": {
+        "additionalProperties": false,
         "properties": {
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          },
-          "input": {
-            "title": "Input"
-          },
-          "ctx": {
-            "type": "object",
-            "title": "Context"
-          }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
-      },
-      "VersionResponse": {
-        "properties": {
-          "version": {
-            "type": "string",
-            "title": "Version",
-            "example": "v1.0.0"
+          "build_timestamp": {
+            "description": "Build timestamp",
+            "examples": [
+              "2026-01-01T00:00:00Z"
+            ],
+            "type": "string"
           },
           "commit_sha": {
-            "type": "string",
-            "title": "Commit Sha",
-            "example": "abc1234567890def1234567890abcdef12345678"
-          },
-          "short_sha": {
-            "type": "string",
-            "title": "Short Sha",
-            "example": "abc1234"
-          },
-          "build_timestamp": {
-            "type": "string",
-            "title": "Build Timestamp",
-            "example": "2026-01-01T00:00:00Z"
+            "description": "Full commit SHA",
+            "examples": [
+              "abc1234567890def1234567890abcdef12345678"
+            ],
+            "type": "string"
           },
           "git_ref": {
-            "type": "string",
-            "title": "Git Ref",
-            "example": "main"
+            "description": "Git ref used for the build",
+            "examples": [
+              "main"
+            ],
+            "type": "string"
+          },
+          "short_sha": {
+            "description": "Short commit SHA",
+            "examples": [
+              "abc1234"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "description": "Application version",
+            "examples": [
+              "v1.0.0"
+            ],
+            "type": "string"
           }
         },
-        "type": "object",
         "required": [
           "version",
           "commit_sha",
@@ -679,7 +305,512 @@
           "build_timestamp",
           "git_ref"
         ],
-        "title": "VersionResponse"
+        "type": "object"
+      },
+      "WorkflowDispatchResponseBody": {
+        "additionalProperties": false,
+        "properties": {
+          "all_jobs_url": {
+            "description": "URL to view all jobs for the workflow run",
+            "examples": [
+              "https://github.com/org/repo/actions/runs/12345678/jobs"
+            ],
+            "type": "string"
+          },
+          "run_id": {
+            "description": "Workflow run ID, null if polling timed out",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "run_url": {
+            "description": "URL to the workflow run, null if polling timed out",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status_code": {
+            "description": "HTTP status code from GitHub API",
+            "examples": [
+              200
+            ],
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status_code",
+          "run_id",
+          "run_url",
+          "all_jobs_url"
+        ],
+        "type": "object"
+      },
+      "WorkflowRunStatusResponseBody": {
+        "additionalProperties": false,
+        "properties": {
+          "conclusion": {
+            "description": "Conclusion of the workflow run, null if still in progress",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "description": "Timestamp when the workflow run was created",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "description": "Workflow run name",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "run_id": {
+            "description": "Workflow run ID",
+            "examples": [
+              12345678
+            ],
+            "format": "int64",
+            "type": "integer"
+          },
+          "run_url": {
+            "description": "URL to the workflow run",
+            "examples": [
+              "https://github.com/org/repo/actions/runs/12345678"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "description": "Current status of the workflow run",
+            "examples": [
+              "completed"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "Timestamp when the workflow run was last updated",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "run_id",
+          "name",
+          "status",
+          "conclusion",
+          "run_url",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Various APIs to help you speed up your development and testing.",
+    "title": "Tools API",
+    "version": "UNKNOWN"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/aws/credentials": {
+      "post": {
+        "description": "If you are testing in AWS/EKS you will need an AWS account to test with. This request will provide you with admin level credentials to the sub account you specify.\nThis can also be used to just get Admin access to a desired sub account.",
+        "operationId": "create-aws-credentials",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwsCredentialsRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Whether it's to create an EKS cluster or to test other things out in an isolated AWS account. These creds will give you Admin level access to the requested account."
+      }
+    },
+    "/v1/aws/nuke": {
+      "post": {
+        "description": "Submit the AWS account name you want to nuke (e.g. glueops-captain-foobar)",
+        "operationId": "nuke-aws-account",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AwsNukeAccountRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDispatchResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Run this after you are done testing within AWS. This will clean up orphaned resources. Note: you may have to run this 2x."
+      }
+    },
+    "/v1/captain/manifests": {
+      "post": {
+        "description": "Generate YAML manifests for captain deployments based on the provided configuration.",
+        "operationId": "create-captain-manifests",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptainManifestsRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Generate captain manifests"
+      }
+    },
+    "/v1/chisel": {
+      "post": {
+        "description": "If you are testing within k3ds you will need chisel to provide you with load balancers.\nFor a provided captain_domain this will delete any existing chisel nodes and provision new ones.\nNote: this will generally result in new IPs being provisioned.",
+        "operationId": "create-chisel-nodes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChiselNodesRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Creates Chisel nodes for dev/k3d clusters. This allows us to mimic a Cloud Controller for Loadbalancers (e.g. NLBs with EKS)"
+      }
+    },
+    "/v1/chisel/delete": {
+      "post": {
+        "description": "When you are done testing with k3ds this will delete your chisel nodes and save on costs.",
+        "operationId": "delete-chisel-nodes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChiselNodesDeleteRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Deletes your chisel nodes. Please run this when you are done with development to save on costs."
+      }
+    },
+    "/v1/github/reset-org": {
+      "post": {
+        "description": "Submit the dev captain_domain you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will reset the GitHub organization so that you can easily get up and running with a new dev cluster.\n\nThis will reset your deployment-configurations repository, it'll bring over a working regcred, and application repos with working github actions so that you can quickly work on the GlueOps stack.\n\nWARNING: By default delete_all_existing_repos = True. Please set it to False or make a manual backup if you are concerned about any data loss within your tenant org (e.g. github.com/development-tenant-*)",
+        "operationId": "reset-github-organization",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetGitHubOrganizationRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDispatchResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Resets the GitHub Organization to make it easier to get a new dev cluster runner for Dev"
+      }
+    },
+    "/v1/github/workflow-status": {
+      "get": {
+        "description": "Provide a GitHub Actions run URL (e.g. https://github.com/owner/repo/actions/runs/12345678) and get the current status of that workflow run.\nWorks for any repo the configured GITHUB_TOKEN has read access to.",
+        "operationId": "get-workflow-run-status",
+        "parameters": [
+          {
+            "description": "GitHub Actions run URL",
+            "explode": false,
+            "in": "query",
+            "name": "run_url",
+            "required": true,
+            "schema": {
+              "description": "GitHub Actions run URL",
+              "examples": [
+                "https://github.com/internal-GlueOps/gha-tools-api/actions/runs/12345678"
+              ],
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowRunStatusResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get the status of a GitHub Actions workflow run"
+      }
+    },
+    "/v1/nuke/domain-data": {
+      "post": {
+        "description": "Submit the captain_domain/tenant you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will delete all backups and data for the provided captain_domain.\n\nThis will remove things like the vault and cert-manager backups.\n\nNote: this may not delete things like Loki/Thanos/Tempo data as that may be managed outside of AWS.",
+        "operationId": "nuke-captain-domain-data",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptainDomainNukeDataAndBackupsRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDispatchResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Deletes all backups/data for a provided captain_domain. Running this before a cluster creation helps ensure a clean environment."
+      }
+    },
+    "/v1/opsgenie/manifest": {
+      "post": {
+        "description": "Create a opsgenie/alertmanager configuration. Do this for any clusters you want alerts on.",
+        "operationId": "create-opsgenie-manifest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpsgenieAlertsManifestRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Creates Opsgenie Alerts Manifest"
+      }
+    },
+    "/v1/storage/buckets": {
+      "post": {
+        "description": "Note: this can be a DESTRUCTIVE operation. For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.",
+        "operationId": "create-storage-buckets",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageBucketsRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Create/Re-create storage buckets that can be used for V2 of our monitoring stack that is Otel based"
+      }
+    },
+    "/version": {
+      "get": {
+        "operationId": "get-version",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponseBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Contains version information about this tools-api"
       }
     }
   }
