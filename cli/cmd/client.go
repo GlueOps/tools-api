@@ -2,30 +2,61 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/GlueOps/tools-api/cli/api"
+	"net/url"
+	"time"
 )
 
+// apiClient is a simple HTTP client wrapper for the Tools API.
+type apiClient struct {
+	baseURL    string
+	token      string
+	httpClient *http.Client
+}
+
 // newClient creates an authenticated API client.
-func newClient() (*api.Client, error) {
+func newClient() (*apiClient, error) {
 	token, err := GetAuthToken()
 	if err != nil {
 		return nil, err
 	}
+	return &apiClient{
+		baseURL:    apiURL,
+		token:      token,
+		httpClient: &http.Client{Timeout: 120 * time.Second},
+	}, nil
+}
 
-	client, err := api.NewClient(apiURL, api.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
-		req.Header.Set("Authorization", "Bearer "+token)
-		return nil
-	}))
+// post sends a POST request with a JSON body.
+func (c *apiClient) post(path string, body interface{}) (*http.Response, error) {
+	jsonBody, err := json.Marshal(body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create API client: %w", err)
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
 	}
-	return client, nil
+	req, err := http.NewRequest(http.MethodPost, c.baseURL+path, bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	return c.httpClient.Do(req)
+}
+
+// get sends a GET request with optional query parameters.
+func (c *apiClient) get(path string, params url.Values) (*http.Response, error) {
+	u := c.baseURL + path
+	if len(params) > 0 {
+		u += "?" + params.Encode()
+	}
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	return c.httpClient.Do(req)
 }
 
 // handleResponse reads and prints the response body, returning an error for non-2xx status.

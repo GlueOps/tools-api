@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"context"
-
-	"github.com/GlueOps/tools-api/cli/api"
 	"github.com/GlueOps/tools-api/cli/internal/spec"
 	"github.com/spf13/cobra"
 )
@@ -15,16 +12,16 @@ var storageBucketsCmd = &cobra.Command{
 
 var storageBucketsCreateCmd = &cobra.Command{
 	Use:   "create",
-	Short: spec.Summary("/v1/storage-buckets", "post", "Create/re-create storage buckets"),
-	Long:  spec.Description("/v1/storage-buckets", "post", ""),
+	Short: spec.Summary("/v1/storage/buckets", "post", "Create/re-create storage buckets"),
+	Long:  spec.Description("/v1/storage/buckets", "post", ""),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		captainDomain, _ := cmd.Flags().GetString("captain-domain")
 		client, err := newClient()
 		if err != nil {
 			return err
 		}
-		resp, err := client.HelloV1StorageBucketsPost(context.Background(), api.HelloV1StorageBucketsPostJSONRequestBody{
-			CaptainDomain: captainDomain,
+		resp, err := client.post("/v1/storage/buckets", map[string]string{
+			"captain_domain": captainDomain,
 		})
 		if err != nil {
 			return err
@@ -34,7 +31,7 @@ var storageBucketsCreateCmd = &cobra.Command{
 }
 
 func init() {
-	storageBucketsCreateCmd.Flags().String("captain-domain", "", spec.FlagDesc("Captain domain", "StorageBucketsRequest", "captain_domain"))
+	storageBucketsCreateCmd.Flags().String("captain-domain", "", spec.FlagDesc("Captain domain", "StorageBucketsRequestBody", "captain_domain"))
 	storageBucketsCreateCmd.MarkFlagRequired("captain-domain")
 	storageBucketsCmd.AddCommand(storageBucketsCreateCmd)
 	rootCmd.AddCommand(storageBucketsCmd)

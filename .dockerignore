@@ -1,0 +1,6 @@
+.git/
+cli/
+tickets/
+*.md
+.ai/
+deployment-configurations/

@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"context"
-
-	"github.com/GlueOps/tools-api/cli/api"
 	"github.com/GlueOps/tools-api/cli/internal/spec"
 	"github.com/spf13/cobra"
 )
@@ -15,8 +12,8 @@ var opsgenieCmd = &cobra.Command{
 
 var opsgenieCreateCmd = &cobra.Command{
 	Use:   "create",
-	Short: spec.Summary("/v1/opsgenie", "post", "Create Opsgenie alerts manifest"),
-	Long:  spec.Description("/v1/opsgenie", "post", ""),
+	Short: spec.Summary("/v1/opsgenie/manifest", "post", "Create Opsgenie alerts manifest"),
+	Long:  spec.Description("/v1/opsgenie/manifest", "post", ""),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		captainDomain, _ := cmd.Flags().GetString("captain-domain")
 		apiKey, _ := cmd.Flags().GetString("api-key")
@@ -25,13 +22,10 @@ var opsgenieCreateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		resp, err := client.CreateOpsgeniealertsManifestV1OpsgeniePost(
-			context.Background(),
-			api.CreateOpsgeniealertsManifestV1OpsgeniePostJSONRequestBody{
-				CaptainDomain: captainDomain,
-				OpsgenieApiKey: apiKey,
-			},
-		)
+		resp, err := client.post("/v1/opsgenie/manifest", map[string]string{
+			"captain_domain":  captainDomain,
+			"opsgenie_api_key": apiKey,
+		})
 		if err != nil {
 			return err
 		}
@@ -40,9 +34,9 @@ var opsgenieCreateCmd = &cobra.Command{
 }
 
 func init() {
-	opsgenieCreateCmd.Flags().String("captain-domain", "", spec.FlagDesc("Captain domain", "OpsgenieAlertsManifestRequest", "captain_domain"))
+	opsgenieCreateCmd.Flags().String("captain-domain", "", spec.FlagDesc("Captain domain", "OpsgenieAlertsManifestRequestBody", "captain_domain"))
 	opsgenieCreateCmd.MarkFlagRequired("captain-domain")
-	opsgenieCreateCmd.Flags().String("api-key", "", spec.FlagDesc("Opsgenie API key", "OpsgenieAlertsManifestRequest", "opsgenie_api_key"))
+	opsgenieCreateCmd.Flags().String("api-key", "", spec.FlagDesc("Opsgenie API key", "OpsgenieAlertsManifestRequestBody", "opsgenie_api_key"))
 	opsgenieCreateCmd.MarkFlagRequired("api-key")
 
 	opsgenieCmd.AddCommand(opsgenieCreateCmd)

@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"context"
+	"net/url"
 
-	"github.com/GlueOps/tools-api/cli/api"
 	"github.com/GlueOps/tools-api/cli/internal/spec"
 	"github.com/spf13/cobra"
 )
@@ -15,8 +14,8 @@ var githubCmd = &cobra.Command{
 
 var githubResetOrgCmd = &cobra.Command{
 	Use:   "reset-org",
-	Short: spec.Summary("/v1/reset-github-organization", "delete", "Reset a GitHub organization"),
-	Long:  spec.Description("/v1/reset-github-organization", "delete", ""),
+	Short: spec.Summary("/v1/github/reset-org", "post", "Reset a GitHub organization"),
+	Long:  spec.Description("/v1/github/reset-org", "post", ""),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		captainDomain, _ := cmd.Flags().GetString("captain-domain")
 		deleteAllRepos, _ := cmd.Flags().GetBool("delete-all-repos")
@@ -27,15 +26,12 @@ var githubResetOrgCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		resp, err := client.ResetGithubOrganizationV1ResetGithubOrganizationDelete(
-			context.Background(),
-			api.ResetGithubOrganizationV1ResetGithubOrganizationDeleteJSONRequestBody{
-				CaptainDomain:        captainDomain,
-				DeleteAllExistingRepos: deleteAllRepos,
-				CustomDomain:         customDomain,
-				EnableCustomDomain:   enableCustomDomain,
-			},
-		)
+		resp, err := client.post("/v1/github/reset-org", map[string]interface{}{
+			"captain_domain":           captainDomain,
+			"delete_all_existing_repos": deleteAllRepos,
+			"custom_domain":            customDomain,
+			"enable_custom_domain":     enableCustomDomain,
+		})
 		if err != nil {
 			return err
 		}
@@ -45,20 +41,17 @@ var githubResetOrgCmd = &cobra.Command{
 
 var githubWorkflowStatusCmd = &cobra.Command{
 	Use:   "workflow-status",
-	Short: spec.Summary("/v1/github/workflow-run-status", "post", "Get the status of a GitHub Actions workflow run"),
-	Long:  spec.Description("/v1/github/workflow-run-status", "post", ""),
+	Short: spec.Summary("/v1/github/workflow-status", "get", "Get the status of a GitHub Actions workflow run"),
+	Long:  spec.Description("/v1/github/workflow-status", "get", ""),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		runURL, _ := cmd.Flags().GetString("run-url")
 		client, err := newClient()
 		if err != nil {
 			return err
 		}
-		resp, err := client.GetWorkflowRunStatusV1GithubWorkflowRunStatusPost(
-			context.Background(),
-			api.GetWorkflowRunStatusV1GithubWorkflowRunStatusPostJSONRequestBody{
-				RunUrl: runURL,
-			},
-		)
+		params := url.Values{}
+		params.Set("run_url", runURL)
+		resp, err := client.get("/v1/github/workflow-status", params)
 		if err != nil {
 			return err
 		}
@@ -67,10 +60,10 @@ var githubWorkflowStatusCmd = &cobra.Command{
 }
 
 func init() {
-	githubResetOrgCmd.Flags().String("captain-domain", "", spec.FlagDesc("Captain domain", "ResetGitHubOrganizationRequest", "captain_domain"))
+	githubResetOrgCmd.Flags().String("captain-domain", "", spec.FlagDesc("Captain domain", "ResetGitHubOrganizationRequestBody", "captain_domain"))
 	githubResetOrgCmd.MarkFlagRequired("captain-domain")
 	githubResetOrgCmd.Flags().Bool("delete-all-repos", true, "Delete all existing repos")
-	githubResetOrgCmd.Flags().String("custom-domain", "", spec.FlagDesc("Custom domain", "ResetGitHubOrganizationRequest", "custom_domain"))
+	githubResetOrgCmd.Flags().String("custom-domain", "", spec.FlagDesc("Custom domain", "ResetGitHubOrganizationRequestBody", "custom_domain"))
 	githubResetOrgCmd.Flags().Bool("enable-custom-domain", false, "Enable custom domain")
 
 	githubWorkflowStatusCmd.Flags().String("run-url", "", spec.FlagDesc("GitHub Actions run URL", "GitHubWorkflowRunStatusRequest", "run_url"))
