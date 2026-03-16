@@ -119,6 +119,30 @@ func main() {
 </html>`))
 	})
 
+	// Token endpoint: displays the access token from oauth2-proxy so users can
+	// copy it for CLI usage. Excluded from OpenAPI schema.
+	router.Get("/token", func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("X-Forwarded-Access-Token")
+		if token == "" {
+			w.Header().Set("Content-Type", "text/html")
+			w.WriteHeader(http.StatusUnauthorized)
+			_, _ = w.Write([]byte(`<!DOCTYPE html><html><body><p>No access token found. Make sure oauth2-proxy has <code>pass_access_token = true</code> configured.</p></body></html>`))
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write([]byte(`<!DOCTYPE html>
+<html>
+<head><title>Your Access Token</title></head>
+<body style="font-family: monospace; max-width: 800px; margin: 40px auto; padding: 0 20px;">
+  <h2>Your Access Token</h2>
+  <p>Copy the token below and use it to configure your CLI:</p>
+  <textarea id="token" rows="6" style="width:100%; font-size:13px;" readonly>` + token + `</textarea>
+  <br><br>
+  <button onclick="navigator.clipboard.writeText(document.getElementById('token').value).then(()=>this.textContent='Copied!')">Copy to Clipboard</button>
+</body>
+</html>`))
+	})
+
 	// Health endpoint registered directly on chi (excluded from OpenAPI schema).
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
