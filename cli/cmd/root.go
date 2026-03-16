@@ -2,17 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/GlueOps/tools-api/cli/internal/auth"
-	"github.com/GlueOps/tools-api/cli/internal/updater"
 	"github.com/spf13/cobra"
 )
 
-var (
-	apiURL        string
-	noUpdateCheck bool
-)
+var apiURL string
 
 // skipAuthCommands lists commands that don't require authentication.
 var skipAuthCommands = map[string]bool{
@@ -28,20 +23,9 @@ var rootCmd = &cobra.Command{
 	Short: "GlueOps platform engineering CLI",
 	Long:  "CLI for interacting with the GlueOps Tools API.",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Skip for commands that don't need auth/update
+		// Skip for commands that don't need auth
 		if !cmd.HasParent() || skipAuthCommands[cmd.Name()] {
 			return nil
-		}
-
-		// Self-update check
-		if !noUpdateCheck {
-			updated, err := updater.CheckAndUpdate(apiURL)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: update check failed: %v\n", err)
-			}
-			if updated {
-				os.Exit(0)
-			}
 		}
 
 		// Auth check
@@ -69,7 +53,6 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "https://tools.toolshosted.rocks", "Tools API base URL")
-	rootCmd.PersistentFlags().BoolVar(&noUpdateCheck, "no-update-check", false, "Skip auto-update check")
 }
 
 // Execute runs the root command.
