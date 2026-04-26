@@ -39,7 +39,7 @@ spec:
   host: "{ip_addresses[f'{captain_domain}-{suffix}']}"
   port: 9090
   auth: selfhosted
-  chisel_image: docker.io/jpillora/chisel:1
+  chisel_image: dockerhub.repo.gpkg.io/jpillora/chisel:1
 ---
 """
     manifest += f"""
