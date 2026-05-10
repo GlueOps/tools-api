@@ -18,5 +18,5 @@ jobs:
           exclude-tags: latest,main,v*
           keep-n-tagged: 5
           delete-untagged: true
-          delete-partial-images: true
+          delete-partial-images: false
           older-than: 5 days
