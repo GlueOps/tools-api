@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  get-repos:
+  cleanup-images:
     runs-on: ubuntu-latest
     concurrency:
       group: cleanup-ghcr-images
