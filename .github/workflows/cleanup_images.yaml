@@ -14,14 +14,11 @@ jobs:
     permissions:
       packages: write
     steps:
-      - name: Set package name
-        id: package
-        run: echo "name=$(basename '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Cleanup old images
         uses: dataaxiom/ghcr-cleanup-action@cd0cdb900b5dbf3a6f2cc869f0dbb0b8211f50c4 # v1.0.16
         with:
-          package: ${{ steps.package.outputs.name }}
+          package: tools-api
           exclude-tags: latest,main,v*
           keep-n-tagged: 5
           delete-untagged: true
