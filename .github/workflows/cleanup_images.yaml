@@ -12,9 +12,7 @@ jobs:
       group: cleanup-ghcr-images
       cancel-in-progress: false
     permissions:
-      contents: read
       packages: write
-      actions: read
     steps:
       - name: Set package name
         id: package
