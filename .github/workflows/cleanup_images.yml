@@ -28,3 +28,4 @@ jobs:
           keep-n-tagged: 5
           delete-untagged: true
           delete-partial-images: true
+          older-than: 5 days
