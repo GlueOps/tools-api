@@ -46,7 +46,7 @@ def create_instances(request):
 package_update: true
 runcmd:
     - curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh && sudo apt install tmux -y
-    - sudo docker run -d --restart always -p 9090:9090 -p 443:443 -p 80:80 -it docker.io/jpillora/chisel:1 server --reverse --port=9090 --auth='{credentials_for_chisel}'
+    - sudo docker run -d --restart always -p 9090:9090 -p 443:443 -p 80:80 -it dockerhub.repo.gpkg.io/jpillora/chisel:1 server --reverse --port=9090 --auth='{credentials_for_chisel}'
 """
 
     user_data = multiline_to_singleline(user_data_readable)
