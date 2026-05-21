@@ -5,8 +5,8 @@ from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, CaptainManifestsRequest, GitHubWorkflowRunStatusRequest, VersionResponse
-from util import storage, aws_setup_test_account_credentials, github, hetzner, opsgenie, captain_manifests
+from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, IncidentioAlertsManifestRequest, CaptainManifestsRequest, GitHubWorkflowRunStatusRequest, VersionResponse
+from util import storage, aws_setup_test_account_credentials, github, hetzner, opsgenie, incidentio, captain_manifests
 from fastapi.responses import RedirectResponse
 
 
@@ -131,6 +131,13 @@ async def create_opsgeniealerts_manifest(request: OpsgenieAlertsManifestRequest)
         Create a opsgenie/alertmanager configuration. Do this for any clusters you want alerts on.
     """
     return opsgenie.create_opsgeniealerts_manifest(request)
+
+@app.post("/v1/incidentio", response_class=PlainTextResponse, summary="Creates Incident.io Alerts Manifest")
+async def create_incidentioalerts_manifest(request: IncidentioAlertsManifestRequest):
+    """
+        Create an incident.io/alertmanager configuration. Do this for any clusters you want alerts on.
+    """
+    return incidentio.create_incidentioalerts_manifest(request)
 
 @app.post("/v1/captain-manifests", response_class=PlainTextResponse, summary="Generate captain manifests")
 async def create_captain_manifests(request: CaptainManifestsRequest):
