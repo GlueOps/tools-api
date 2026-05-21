@@ -46,6 +46,23 @@ class OpsgenieAlertsManifestRequest(BaseModel):
     captain_domain: str  = Field(...,example = 'nonprod.foobar.onglueops.rocks')
     opsgenie_api_key: str  = Field(...,example = '6825b4ef-4e84-44a1-8450-b46b02852add')
 
+class IncidentioAlertsManifestRequest(BaseModel):
+    incidentio_alertmanager_url: str = Field(
+        ...,
+        example='https://api.incident.io/v2/alert_events/alertmanager/XXXXXXXXXXXXXXXXXXX',
+        description='Bare Alertmanager source URL (no ?token= query param). Copy from incident.io UI: Alerts -> Alert sources -> Alertmanager.'
+    )
+    incidentio_alertmanager_token: str = Field(
+        ...,
+        example='XXXXXXXXXXXXXXXXXXX',
+        description='Secret token for the Alertmanager source. Sent in the Authorization header via a Kubernetes Secret reference.'
+    )
+    incidentio_heartbeat_url: str = Field(
+        ...,
+        example='https://api.incident.io/v2/heartbeat/YYYYYYYYYYYYY/ping?token=XXXXXXXXXXXXXXXXXXX',
+        description='Full Heartbeat URL including the ?token= query parameter. Copy from incident.io UI: Alerts -> Alert sources -> Heartbeat.'
+    )
+
 class CaptainManifestsRequest(BaseModel):
     captain_domain: str = Field(..., example='nonprod.foobar.onglueops.rocks')
     tenant_github_organization_name: str = Field(..., example='development-tenant-foobar')
