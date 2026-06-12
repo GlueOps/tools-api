@@ -234,7 +234,7 @@ roleRef:
   name: glueops-reader
 subjects:
   - kind: Group
-    name: {group}-reader
+    name: {group}-kubectl-reader
     apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -248,7 +248,7 @@ roleRef:
   name: glueops-debugger
 subjects:
   - kind: Group
-    name: {group}-debugger
+    name: {group}-kubectl-debugger
     apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -262,7 +262,7 @@ roleRef:
   name: glueops-operator
 subjects:
   - kind: Group
-    name: {group}-operator
+    name: {group}-kubectl-operator
     apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
