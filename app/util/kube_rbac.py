@@ -227,7 +227,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: glueops-reader
-  namespace: {namespace}
+  namespace: "{namespace}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -241,7 +241,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: glueops-debugger
-  namespace: {namespace}
+  namespace: "{namespace}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -255,7 +255,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: glueops-operator
-  namespace: {namespace}
+  namespace: "{namespace}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
