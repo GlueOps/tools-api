@@ -80,6 +80,18 @@ class KubeApiserverManifestRequest(BaseModel):
         description='Comma-separated CIDR ranges allowed to reach the kube-apiserver; at least one required. Replace the example (RFC 5737 documentation ranges) with your own IPs.'
     )
 
+class KubeRbacManifestRequest(BaseModel):
+    captain_domain: str = Field(
+        ...,
+        example='nonprod.foobar.onglueops.rocks',
+        description='RoleBinding namespace = first label (e.g. "nonprod"); also the OIDC group suffix.'
+    )
+    tenant_github_organization_name: str = Field(
+        ...,
+        example='development-tenant-foobar',
+        description='OIDC group prefix: oidc:<org>:<captain_domain>-<reader|debugger|operator>.'
+    )
+
 class GitHubWorkflowRunStatusRequest(BaseModel):
     run_url: str = Field(..., example='https://github.com/internal-GlueOps/gha-tools-api/actions/runs/12345678')
 
