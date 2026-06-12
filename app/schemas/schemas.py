@@ -89,7 +89,7 @@ class KubeRbacManifestRequest(BaseModel):
     tenant_github_organization_name: str = Field(
         ...,
         example='development-tenant-foobar',
-        description='OIDC group prefix: oidc:<org>:<captain_domain>-<reader|debugger|operator>.'
+        description='OIDC group prefix: oidc:<org>:<captain_domain>-kubectl-<reader|debugger|operator>.'
     )
 
 class GitHubWorkflowRunStatusRequest(BaseModel):

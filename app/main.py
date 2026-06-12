@@ -158,7 +158,7 @@ async def create_kube_rbac_manifest(request: KubeRbacManifestRequest):
         Generate the ClusterRoles + namespace-scoped RoleBindings that let a tenant's developers
         debug their workloads (Lens/k9s) in their <environment> namespace via the kube-apiserver
         exposed by /v1/kube-apiserver. The namespace is the first label of captain_domain and the
-        RoleBinding subjects are oidc:<tenant_github_organization_name>:<captain_domain>-<role>.
+        RoleBinding subjects are oidc:<tenant_github_organization_name>:<captain_domain>-kubectl-<role>.
         Also includes the hardcoded glueops-super-admins -> cluster-admin ClusterRoleBinding.
     """
     return kube_rbac.create_kube_rbac_manifest(request)
