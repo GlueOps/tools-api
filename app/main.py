@@ -5,8 +5,8 @@ from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, IncidentioAlertsManifestRequest, CaptainManifestsRequest, KubeApiserverManifestRequest, GitHubWorkflowRunStatusRequest, VersionResponse
-from util import storage, aws_setup_test_account_credentials, github, hetzner, opsgenie, incidentio, captain_manifests, kube_apiserver
+from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, IncidentioAlertsManifestRequest, CaptainManifestsRequest, KubeApiserverManifestRequest, KubeRbacManifestRequest, GitHubWorkflowRunStatusRequest, VersionResponse
+from util import storage, aws_setup_test_account_credentials, github, hetzner, opsgenie, incidentio, captain_manifests, kube_apiserver, kube_rbac
 from fastapi.responses import RedirectResponse
 
 
@@ -151,6 +151,17 @@ async def create_kube_apiserver_manifest(request: KubeApiserverManifestRequest):
         providers.kubernetesCRD.allowCrossNamespace=true or the route is silently dropped.
     """
     return kube_apiserver.create_kube_apiserver_manifest(request)
+
+@app.post("/v1/kube-rbac", response_class=PlainTextResponse, summary="Generate developer-debug RBAC (reader/debugger/operator) for a tenant's namespace")
+async def create_kube_rbac_manifest(request: KubeRbacManifestRequest):
+    """
+        Generate the ClusterRoles + namespace-scoped RoleBindings that let a tenant's developers
+        debug their workloads (Lens/k9s) in their <environment> namespace via the kube-apiserver
+        exposed by /v1/kube-apiserver. The namespace is the first label of captain_domain and the
+        RoleBinding subjects are oidc:<tenant_github_organization_name>:<captain_domain>-<role>.
+        Also includes the hardcoded glueops-super-admins -> cluster-admin ClusterRoleBinding.
+    """
+    return kube_rbac.create_kube_rbac_manifest(request)
 
 @app.post("/v1/captain-manifests", response_class=PlainTextResponse, summary="Generate captain manifests")
 async def create_captain_manifests(request: CaptainManifestsRequest):
