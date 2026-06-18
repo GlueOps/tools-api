@@ -152,7 +152,7 @@ async def create_kube_apiserver_manifest(request: KubeApiserverManifestRequest):
     """
     return kube_apiserver.create_kube_apiserver_manifest(request)
 
-@app.post("/v1/kube-rbac", response_class=PlainTextResponse, summary="Generate developer-debug RBAC (reader/debugger/operator) for a tenant's namespace")
+@app.post("/v1/kube-rbac", response_class=PlainTextResponse, summary="Generate developer-debug RBAC (reader/reader-plus/debugger/operator) for a tenant's namespace")
 async def create_kube_rbac_manifest(request: KubeRbacManifestRequest):
     """
         Generate the ClusterRoles + namespace-scoped RoleBindings that let a tenant's developers

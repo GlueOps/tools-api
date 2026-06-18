@@ -20,10 +20,11 @@ def create_kube_rbac_manifest(request):
         raise HTTPException(status_code=422, detail="Invalid tenant_github_organization_name.")
 
     namespace = captain_domain.split('.')[0]          # environment_name (e.g. "nonprod")
-    group = f"oidc:{tenant_org}:{captain_domain}"      # append -reader / -debugger / -operator
+    group = f"oidc:{tenant_org}:{captain_domain}"      # append -reader / -reader-plus / -debugger / -operator
 
     manifest = f"""# GlueOps developer-debug RBAC for kube-apiserver access (Lens / k9s).
-# No aggregationRules (conflicts with ArgoCD) -- each role repeats the read set; keep them in sync.
+# No aggregationRules (conflicts with ArgoCD) -- reader / reader-plus / debugger / operator each
+# repeat the read set; keep them in sync.
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -79,6 +80,66 @@ rules:
   - apiGroups: ["traefik.io"]  # add "traefik.containo.us" on older Traefik v2
     resources: ["ingressroutes", "ingressroutetcps", "middlewares", "middlewaretcps"]
     verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: glueops-reader-plus
+rules:
+  # read set (in sync with glueops-reader)
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/status
+      - pods/log
+      - services
+      - endpoints
+      - configmaps
+      - events
+      - persistentvolumeclaims
+      - serviceaccounts
+      - resourcequotas
+      - limitranges
+      - replicationcontrollers
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["controllerrevisions"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications", "applicationsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["external-secrets.io"]
+    resources: ["externalsecrets", "secretstores"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["traefik.io"]
+    resources: ["ingressroutes", "ingressroutetcps", "middlewares", "middlewaretcps"]
+    verbs: ["get", "list", "watch"]
+  # reader-plus only: port-forward (no exec/attach/delete/patch)
+  - apiGroups: [""]
+    resources: ["pods/portforward"]
+    verbs: ["create"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -235,6 +296,20 @@ roleRef:
 subjects:
   - kind: Group
     name: {group}-kubectl-reader
+    apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: glueops-reader-plus
+  namespace: "{namespace}"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: glueops-reader-plus
+subjects:
+  - kind: Group
+    name: {group}-kubectl-reader-plus
     apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
