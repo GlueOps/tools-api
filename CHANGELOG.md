@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/GlueOps/tools-api/compare/v0.1.0...v0.1.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* generate valid, consistently-indented storage config YAML ([#54](https://github.com/GlueOps/tools-api/issues/54)) ([8e01d79](https://github.com/GlueOps/tools-api/commit/8e01d7984c1283f8909e7245757b209976b4bd83))
+
 ## [0.1.0](https://github.com/GlueOps/tools-api/compare/v0.0.72...v0.1.0) (2026-06-30)
 
 
