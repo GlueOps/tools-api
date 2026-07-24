@@ -4,7 +4,7 @@ This file provides guidance to AI coding assistants when working with code in th
 
 ## Project Overview
 
-tools-api is a FastAPI service providing internal REST APIs for GlueOps platform engineers. It manages AWS accounts, cloud storage (MinIO), Hetzner infrastructure (Chisel load balancers), GitHub organization setup, Kubernetes/ArgoCD manifest generation, and alerting integrations (Opsgenie, incident.io).
+tools-api is a FastAPI service providing internal REST APIs for GlueOps platform engineers. It manages AWS accounts, cloud storage (MinIO), Hetzner infrastructure (Chisel load balancers), GitHub organization setup, Kubernetes/ArgoCD manifest generation, and Opsgenie alerting.
 
 A companion Go CLI (`cli/`) allows engineers to interact with the API from headless Linux machines. See [`cli/.ai/AGENTS.md`](../cli/.ai/AGENTS.md) for CLI-specific guidance.
 
@@ -38,7 +38,7 @@ The Dockerfile uses `python:3.14-slim` as base, installs dependencies via pipenv
 
 - **`app/main.py`** — FastAPI app entry point. Defines all API routes, global exception handler, health/version endpoints. Routes redirect `/` to `/docs`.
 - **`app/schemas/schemas.py`** — Pydantic request/response models for all endpoints (including `VersionResponse` for `/version`). Examples and descriptions defined here are the single source of truth — the CLI reads them from the embedded OpenAPI spec at compile time.
-- **`app/util/`** — Business logic modules, one per domain: `storage.py` (MinIO), `github.py`, `hetzner.py`, `aws_setup_test_account_credentials.py`, `chisel.py`, `captain_manifests.py`, `opsgenie.py`, `incidentio.py`. The alerting modules (`opsgenie.py`, `incidentio.py`) follow the same pattern: a single `create_<x>alerts_manifest(request)` function returning an ArgoCD Application YAML as a plain f-string template. New alerting integrations should follow the same shape.
+- **`app/util/`** — Business logic modules, one per domain: `storage.py` (MinIO), `github.py`, `hetzner.py`, `aws_setup_test_account_credentials.py`, `chisel.py`, `captain_manifests.py`, `opsgenie.py`.
 - **`app/templates/captain_manifests/`** — Jinja2 templates (`.yaml.j2`) for generating Kubernetes manifests (Namespace, AppProject, ApplicationSet).
 - **`cli/`** — Go CLI binary. See [`cli/.ai/AGENTS.md`](../cli/.ai/AGENTS.md).
 
