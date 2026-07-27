@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/GlueOps/tools-api/compare/v0.1.1...v0.2.0) (2026-07-27)
+
+
+### Features
+
+* add vpa rbac (read-only) ([#59](https://github.com/GlueOps/tools-api/issues/59)) ([4202dac](https://github.com/GlueOps/tools-api/commit/4202dacee6823759e4283651bbc5a46c77e065d2))
+
 ## [0.1.1](https://github.com/GlueOps/tools-api/compare/v0.1.0...v0.1.1) (2026-07-06)
 
 
