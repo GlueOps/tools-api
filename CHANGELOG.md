@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/GlueOps/tools-api/compare/v0.6.0...v0.6.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* default PROXMOX_DOWNLOAD_SERVER_URL to the prebuilt image release ([#91](https://github.com/GlueOps/tools-api/issues/91)) ([c64847b](https://github.com/GlueOps/tools-api/commit/c64847b348befb7d10d08429d10b816295a02503))
+
 ## [0.6.0](https://github.com/GlueOps/tools-api/compare/v0.5.1...v0.6.0) (2026-07-31)
 
 
