@@ -1,10 +1,12 @@
 import asyncio
 import os
+import re
 
 import httpx
 from fastapi import HTTPException
+from glueops.proxmox import ProxmoxClient, build_cloudinit_iso
+from glueops.waggle import WaggleClient
 import util.chisel
-from util import proxmox, waggle
 import glueops.setup_logging
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -12,9 +14,40 @@ logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 
 POOL_NAME_PREFIX = "k3d-lb-"
 
+# Tags applied to every VM we create; deletion requires all of them (plus the
+# captain_domain tag) so we can never touch VMs another tool created.
+MANAGED_TAG = "glueops-k3d-lb"
+CREATOR_TAG = "tools-api"
+
 # Serializes create/delete per captain_domain so a concurrent POST/DELETE for the
 # same domain can't interleave (single-worker FastAPI, so an asyncio.Lock suffices).
 _domain_locks = {}
+
+_proxmox_client = None
+_waggle_client = None
+
+
+def _proxmox() -> ProxmoxClient:
+    global _proxmox_client
+    if _proxmox_client is None:
+        _proxmox_client = ProxmoxClient(
+            host=os.environ["PROXMOX_HOST"],
+            token_id=os.environ["PROXMOX_TOKEN_ID"],
+            token_secret=os.environ["PROXMOX_TOKEN_SECRET"],
+            storage=os.environ["PROXMOX_STORAGE"],
+            port=int(os.getenv("PROXMOX_PORT", "8006")),
+            verify_ssl=os.getenv("PROXMOX_VERIFY_SSL", "true").lower() not in ("false", "0", "no"),
+            download_server_url=os.environ["PROXMOX_DOWNLOAD_SERVER_URL"],
+            download_timeout=float(os.getenv("PROXMOX_IMAGE_DOWNLOAD_TIMEOUT", "1800")),
+        )
+    return _proxmox_client
+
+
+def _waggle() -> WaggleClient:
+    global _waggle_client
+    if _waggle_client is None:
+        _waggle_client = WaggleClient(os.environ["WAGGLE_API_URL"], os.environ["WAGGLE_API_KEY"])
+    return _waggle_client
 
 
 def _domain_lock(captain_domain: str) -> asyncio.Lock:
@@ -41,13 +74,13 @@ def _meta_data(vm_name: str) -> str:
     return f"instance-id: {vm_name}\nlocal-hostname: {vm_name}\n"
 
 
-async def _create_vm_with_vmid_retry(node: str, vm_name: str, vcpus: int, memory_mb: int, image: str, iso_filename: str, tags: list) -> str:
+async def _create_vm_with_vmid_retry(px: ProxmoxClient, node: str, vm_name: str, vcpus: int, memory_mb: int, image: str, iso_filename: str, tags: list) -> str:
     """/cluster/nextid is non-reserving, so a concurrent creator can claim the same
     vmid between our fetch and create. Retry on the resulting conflict."""
     for attempt in range(3):
-        vmid = await proxmox.get_next_vmid()
+        vmid = await px.get_next_vmid()
         try:
-            await proxmox.create_vm(
+            await px.create_vm(
                 node=node,
                 vmid=vmid,
                 vm_name=vm_name,
@@ -56,6 +89,8 @@ async def _create_vm_with_vmid_retry(node: str, vm_name: str, vcpus: int, memory
                 image=image,
                 iso_filename=iso_filename,
                 tags=tags,
+                bridge=os.getenv("PROXMOX_BRIDGE", "vmbr_public"),
+                vlan_tag=os.getenv("PROXMOX_VLAN_TAG") or None,
             )
             return vmid
         except httpx.HTTPStatusError as e:
@@ -70,6 +105,8 @@ async def create_nodes(request) -> str:
     # (tags, VM names, ISO filenames, pool name) must agree for delete to find them.
     captain_domain = request.captain_domain.strip().lower()
     node_count = request.node_count
+    px = _proxmox()
+    waggle = _waggle()
     async with _domain_lock(captain_domain):
         logger.info(f"Starting k3d-lb node creation for captain_domain: {captain_domain}")
 
@@ -96,34 +133,35 @@ async def create_nodes(request) -> str:
                 vm_name = f"{captain_domain}-{suffix}"
                 logger.info(f"Creating k3d-lb node {vm_name} on hypervisor {node} (placement {placement['id']})")
                 if node not in cached_nodes:
-                    await proxmox.ensure_image_cached(node, image)
+                    await px.ensure_image_cached(node, image)
                     cached_nodes.add(node)
-                iso_bytes = proxmox.build_cloudinit_iso(
+                iso_bytes = build_cloudinit_iso(
                     _user_data(credentials_for_chisel).encode(),
                     _meta_data(vm_name).encode(),
                 )
-                iso_filename = await proxmox.upload_iso(node, vm_name, iso_bytes)
+                iso_filename = await px.upload_iso(node, f"{vm_name}-cloudinit.iso", iso_bytes)
                 vmid = await _create_vm_with_vmid_retry(
+                    px,
                     node=node,
                     vm_name=vm_name,
                     vcpus=slot["vcpu"],
                     memory_mb=slot["ram_gb"] * 1024,
                     image=image,
                     iso_filename=iso_filename,
-                    tags=[proxmox.CREATOR_TAG, proxmox.MANAGED_TAG, captain_domain],
+                    tags=[CREATOR_TAG, MANAGED_TAG, captain_domain],
                 )
-                await proxmox.resize_disk(node, vmid, slot["disk_gb"])
-                await proxmox.start_vm(node, vmid)
+                await px.resize_disk(node, vmid, slot["disk_gb"])
+                await px.start_vm(node, vmid)
                 await waggle.set_placement_vmid(placement["id"], int(vmid))
                 vms.append({"vm_name": vm_name, "node": node, "vmid": vmid, "iso_filename": iso_filename})
 
             # Boot/cloud-init/IP discovery runs concurrently across all nodes.
             async def finalize(vm) -> str:
                 try:
-                    await proxmox.wait_for_cloud_init(vm["node"], vm["vmid"])
-                    return await proxmox.get_vm_ipv4(vm["node"], vm["vmid"])
+                    await px.wait_for_cloud_init(vm["node"], vm["vmid"])
+                    return await px.get_vm_ipv4(vm["node"], vm["vmid"])
                 finally:
-                    await proxmox.eject_and_delete_iso(vm["node"], vm["vmid"], vm["iso_filename"])
+                    await px.eject_and_delete_iso(vm["node"], vm["vmid"], vm["iso_filename"])
 
             # return_exceptions=True (not TaskGroup): every finalize runs to its bounded
             # completion, so healthy VMs still clean up their ISOs and no task outlives
@@ -156,19 +194,23 @@ async def delete_nodes(captain_domain: str):
 
 async def _delete_nodes_locked(captain_domain: str):
     logger.info(f"Starting deletion of existing k3d-lb nodes for captain_domain: {captain_domain}")
+    px = _proxmox()
+    waggle = _waggle()
 
-    vms = await proxmox.list_vms_by_tags([proxmox.CREATOR_TAG, proxmox.MANAGED_TAG, captain_domain])
+    vms = await px.list_vms_by_tags([CREATOR_TAG, MANAGED_TAG, captain_domain])
     failures = []
     for vm in vms:
         try:
             logger.info(f"Deleting k3d-lb node {vm['name']} (vmid {vm['vmid']} on {vm['node']})")
-            await proxmox.delete_vm(vm["node"], vm["vmid"])
+            await px.delete_vm(vm["node"], vm["vmid"])
         except Exception as e:
             logger.error(f"Failed to delete k3d-lb node {vm['name']} (vmid {vm['vmid']} on {vm['node']}): {e}")
             failures.append(f"{vm['name']} (vmid {vm['vmid']} on {vm['node']}): {e}")
 
     try:
-        await proxmox.delete_orphan_isos(captain_domain)
+        deleted = await px.delete_isos_matching(rf"{re.escape(captain_domain)}-exit\d+-cloudinit\.iso")
+        if deleted:
+            logger.info(f"Deleted {deleted} orphaned cloud-init ISO(s) for {captain_domain}")
     except Exception as e:
         logger.error(f"Orphaned ISO sweep failed for {captain_domain}: {e}")
 
