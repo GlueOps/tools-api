@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/GlueOps/tools-api/compare/v0.6.1...v0.7.0) (2026-07-31)
+
+
+### Features
+
+* slim cloud-init to the baked image and prune stale cached images ([#93](https://github.com/GlueOps/tools-api/issues/93)) ([a83cc89](https://github.com/GlueOps/tools-api/commit/a83cc899b9af2bfaa65f3801c724070973dd96e3))
+
 ## [0.6.1](https://github.com/GlueOps/tools-api/compare/v0.6.0...v0.6.1) (2026-07-31)
 
 
