@@ -165,9 +165,10 @@ async def _create_vm_with_vmid_retry(px: ProxmoxClient, node: str, vm_name: str,
     """/cluster/nextid is non-reserving, so concurrent creators (our own parallel
     builds, or anything external) can claim the same vmid between our fetch and
     create. The collision fails clean at config-create time (nothing is left
-    behind), so retry optimistically: refetch nextid after a short escalating
-    backoff (~1s first round — the winner's config registers almost immediately —
-    capped at 10s for heavily contended rounds)."""
+    behind), so retry immediately: by the time the loser sees the error the
+    winner's config already exists, so the refetched nextid has moved on. Lock
+    timeouts are self-rate-limited (PVE waits ~10s internally before returning
+    them), so they retry immediately too."""
     for attempt in range(attempts):
         vmid = await px.get_next_vmid()
         try:
@@ -186,10 +187,8 @@ async def _create_vm_with_vmid_retry(px: ProxmoxClient, node: str, vm_name: str,
             return vmid
         except (httpx.HTTPStatusError, RuntimeError) as e:
             if attempt < attempts - 1 and (_is_vmid_conflict(e) or _is_transient_lock_timeout(e)):
-                backoff = min(1.0 * (attempt + 1), 10.0)
                 reason = "was taken by a concurrent create" if _is_vmid_conflict(e) else "hit a transient Proxmox lock timeout"
-                logger.warning(f"vmid {vmid} {reason}, retrying {vm_name} in {backoff:.0f}s")
-                await asyncio.sleep(backoff)
+                logger.warning(f"vmid {vmid} {reason}, retrying {vm_name} immediately")
                 continue
             raise
 
