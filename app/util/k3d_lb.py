@@ -37,9 +37,14 @@ def _proxmox() -> ProxmoxClient:
             storage=os.environ["PROXMOX_STORAGE"],
             port=int(os.getenv("PROXMOX_PORT", "8006")),
             verify_ssl=os.getenv("PROXMOX_VERIFY_SSL", "true").lower() not in ("false", "0", "no"),
-            # The PVE node fetches <base>/<image>.qcow2 itself; default to the
-            # official Debian cloud images site (needs internet egress from the node).
-            download_server_url=os.getenv("PROXMOX_DOWNLOAD_SERVER_URL", "https://cloud.debian.org/images/cloud/trixie/latest"),
+            # The PVE node fetches <base>/<image>.qcow2 itself (needs egress).
+            # Must stay paired with K3D_LB_VM_IMAGE's default: the prebuilt image
+            # only exists on the proxmox-images-chisel releases, and its
+            # SHA256SUMS there is what enables checksum verification.
+            download_server_url=os.getenv(
+                "PROXMOX_DOWNLOAD_SERVER_URL",
+                "https://github.com/GlueOps/proxmox-images-chisel/releases/latest/download",
+            ),
             download_timeout=float(os.getenv("PROXMOX_IMAGE_DOWNLOAD_TIMEOUT", "1800")),
         )
     return _proxmox_client
