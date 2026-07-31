@@ -86,6 +86,32 @@ def _meta_data(vm_name: str) -> str:
     return f"instance-id: {vm_name}\nlocal-hostname: {vm_name}\n"
 
 
+async def _fetch_expected_sha256(download_server_url: str, filename: str):
+    """Look up filename's digest in the download server's SHA256SUMS manifest.
+
+    Returns None when no manifest is published (e.g. the plain Debian mirror
+    default) so image caching degrades to the previous unverified behavior
+    rather than failing.
+    """
+    url = f"{download_server_url.rstrip('/')}/SHA256SUMS"
+    try:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as c:
+            r = await c.get(url)
+            if r.status_code >= 400:
+                logger.info(f"No SHA256SUMS at {url} ({r.status_code}); skipping image checksum verification")
+                return None
+            for line in r.text.splitlines():
+                parts = line.split()
+                if len(parts) == 2 and parts[1].lstrip("*") == filename:
+                    logger.info(f"Expected {filename} sha256: {parts[0]}")
+                    return parts[0]
+    except httpx.HTTPError as e:
+        logger.warning(f"Could not fetch {url}: {e}; skipping image checksum verification")
+        return None
+    logger.warning(f"{filename} not listed in {url}; skipping image checksum verification")
+    return None
+
+
 # One background cleanup task per captain_domain (strong refs so they aren't
 # garbage-collected mid-run). A newer create/delete for the same domain must
 # cancel the previous run's task: it holds stale (vmid, iso_filename) pairs,
@@ -209,7 +235,11 @@ async def create_nodes(request) -> str:
 
         credentials_for_chisel = util.chisel.generate_credentials()
         suffixes = util.chisel.get_suffixes(node_count)
-        image = os.getenv("K3D_LB_VM_IMAGE", "debian-13-generic-amd64")
+        image = os.getenv("K3D_LB_VM_IMAGE", "tools-api-k3d-lb-chisel-debian-13-amd64")
+        checksum = await _fetch_expected_sha256(px.download_server_url, f"{image}.qcow2")
+        # Cache under a checksum-derived name so a node re-downloads when the
+        # release changes instead of reusing whatever it first cached forever.
+        cache_name = f"{image}-{checksum[:12]}" if checksum else image
 
         datacenter = await waggle.get_datacenter_by_name(os.environ["WAGGLE_DATACENTER_NAME"])
         slot = await waggle.get_slot_by_name(os.environ["WAGGLE_SLOT_NAME"])
@@ -232,14 +262,16 @@ async def create_nodes(request) -> str:
             for placement in placements:
                 node = placement["hypervisor_name"]
                 if node not in cache_tasks:
-                    cache_tasks[node] = asyncio.create_task(px.ensure_image_cached(node, image))
+                    cache_tasks[node] = asyncio.create_task(
+                        px.ensure_image_cached(node, image, checksum=checksum, cache_name=cache_name)
+                    )
             create_attempts = 3 + 2 * node_count
 
             async def build(suffix, placement) -> dict:
                 node = placement["hypervisor_name"]
                 vm_name = f"{captain_domain}-{suffix}"
                 logger.info(f"Creating k3d-lb node {vm_name} on hypervisor {node} (placement {placement['id']})")
-                await cache_tasks[node]
+                cached_image = await cache_tasks[node]
                 iso_bytes = build_cloudinit_iso(
                     _user_data(credentials_for_chisel).encode(),
                     _meta_data(vm_name).encode(),
@@ -251,7 +283,7 @@ async def create_nodes(request) -> str:
                     vm_name=vm_name,
                     vcpus=slot["vcpu"],
                     memory_mb=slot["ram_gb"] * 1024,
-                    image=image,
+                    image=cached_image,
                     iso_filename=iso_filename,
                     tags=[CREATOR_TAG, MANAGED_TAG, captain_domain],
                     attempts=create_attempts,
