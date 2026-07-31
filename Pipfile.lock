@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "453d2ea7f8782e5556fbce302a6dc33b8192055d7d78e10eb11b3a46f7eaa92e"
+            "sha256": "d0702491dc9500198ebc72ba3b949ab3e5f1a6222a91a473fbd7c7552288920c"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -862,7 +862,7 @@
             "version": "==1.8.0"
         },
         "glueops-helpers": {
-            "file": "https://github.com/GlueOps/python-glueops-helpers-library/archive/refs/tags/v0.7.1.zip"
+            "file": "https://github.com/GlueOps/python-glueops-helpers-library/archive/refs/tags/v0.7.2.zip"
         },
         "h11": {
             "hashes": [
