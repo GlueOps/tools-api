@@ -76,6 +76,41 @@ def _meta_data(vm_name: str) -> str:
     return f"instance-id: {vm_name}\nlocal-hostname: {vm_name}\n"
 
 
+# Hold strong references so fire-and-forget tasks aren't garbage-collected mid-run.
+_background_tasks = set()
+
+
+def _spawn_background(coro, label: str):
+    task = asyncio.create_task(coro)
+    _background_tasks.add(task)
+
+    def _done(t):
+        _background_tasks.discard(t)
+        if not t.cancelled() and t.exception():
+            logger.error(f"Background task {label!r} failed: {t.exception()!r}")
+
+    task.add_done_callback(_done)
+
+
+async def _finalize_cleanup(captain_domain: str, vms: list):
+    """Wait for cloud-init to finish, then eject and delete each cloud-init ISO.
+
+    Runs after the create response has been returned; deleting the ISO while
+    cloud-init is still reading it would break provisioning, hence the wait.
+    """
+    px = _proxmox()
+
+    async def one(vm):
+        try:
+            await px.wait_for_cloud_init(vm["node"], vm["vmid"])
+        except Exception as e:
+            logger.warning(f"Cloud-init wait failed for {vm['vm_name']} (vmid {vm['vmid']}): {e}; ejecting ISO anyway")
+        await px.eject_and_delete_iso(vm["node"], vm["vmid"], vm["iso_filename"])
+
+    await asyncio.gather(*(one(vm) for vm in vms))
+    logger.info(f"Background cloud-init/ISO cleanup complete for captain_domain: {captain_domain}")
+
+
 async def _create_vm_with_vmid_retry(px: ProxmoxClient, node: str, vm_name: str, vcpus: int, memory_mb: int, image: str, iso_filename: str, tags: list) -> str:
     """/cluster/nextid is non-reserving, so a concurrent creator can claim the same
     vmid between our fetch and create. Retry on the resulting conflict."""
@@ -157,26 +192,29 @@ async def create_nodes(request) -> str:
                 await waggle.set_placement_vmid(placement["id"], int(vmid))
                 vms.append({"vm_name": vm_name, "node": node, "vmid": vmid, "iso_filename": iso_filename})
 
-            # Boot/cloud-init/IP discovery runs concurrently across all nodes.
-            async def finalize(vm) -> str:
-                try:
-                    await px.wait_for_cloud_init(vm["node"], vm["vmid"])
-                    return await px.get_vm_ipv4(vm["node"], vm["vmid"])
-                finally:
-                    await px.eject_and_delete_iso(vm["node"], vm["vmid"], vm["iso_filename"])
-
-            # return_exceptions=True (not TaskGroup): every finalize runs to its bounded
-            # completion, so healthy VMs still clean up their ISOs and no task outlives
-            # the request; errors are aggregated below.
-            results = await asyncio.gather(*(finalize(vm) for vm in vms), return_exceptions=True)
+            # Return as soon as every VM's IP is known: the guest agent comes up
+            # during cloud-init's package phase, well before the docker install
+            # finishes, and the chisel operator retries until the server is
+            # reachable — same semantics as the Hetzner endpoint, which returns
+            # before its VMs have even booted. get_vm_ipv4 polls through
+            # agent-not-yet-running errors, so it alone gates on agent + DHCP.
+            results = await asyncio.gather(
+                *(px.get_vm_ipv4(vm["node"], vm["vmid"], timeout=300) for vm in vms),
+                return_exceptions=True,
+            )
             failures = [
                 f"{vm['vm_name']} (vmid {vm['vmid']}): {r}"
                 for vm, r in zip(vms, results) if isinstance(r, BaseException)
             ]
             if failures:
-                raise RuntimeError(f"Node finalization failed for {len(failures)}/{len(vms)} node(s): " + "; ".join(failures))
+                raise RuntimeError(f"IP discovery failed for {len(failures)}/{len(vms)} node(s): " + "; ".join(failures))
             ip_addresses = {vm["vm_name"]: ip for vm, ip in zip(vms, results)}
             logger.info(f"All k3d-lb nodes created successfully. IP addresses: {ip_addresses}")
+
+            # Cloud-init wait + ISO eject/delete happen in the background so the
+            # response isn't gated on the docker install. If this task dies, the
+            # orphan-ISO sweep in delete_nodes cleans up on the next POST/DELETE.
+            _spawn_background(_finalize_cleanup(captain_domain, vms), f"k3d-lb cleanup for {captain_domain}")
         except Exception as e:
             logger.error(f"Error creating k3d-lb nodes for {captain_domain}: {str(e)}")
             raise HTTPException(status_code=500, detail=(
