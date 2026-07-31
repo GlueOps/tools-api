@@ -111,6 +111,16 @@ async def _finalize_cleanup(captain_domain: str, vms: list):
     logger.info(f"Background cloud-init/ISO cleanup complete for captain_domain: {captain_domain}")
 
 
+def _is_vmid_conflict(e: Exception) -> bool:
+    """Proxmox reports a vmid collision two ways depending on when the loser
+    loses: 'config file already exists' (pre-check) or
+    'close (rename) atomic file ... failed: File exists' (tight race at the
+    atomic rename). Both mean the same thing: someone else claimed the vmid."""
+    if not isinstance(e, httpx.HTTPStatusError):
+        return False
+    return "already exist" in e.response.text or "File exists" in e.response.text
+
+
 async def _create_vm_with_vmid_retry(px: ProxmoxClient, node: str, vm_name: str, vcpus: int, memory_mb: int, image: str, iso_filename: str, tags: list, attempts: int = 3) -> str:
     """/cluster/nextid is non-reserving, so concurrent creators (our own parallel
     builds, or anything external) can claim the same vmid between our fetch and
@@ -135,7 +145,7 @@ async def _create_vm_with_vmid_retry(px: ProxmoxClient, node: str, vm_name: str,
             )
             return vmid
         except httpx.HTTPStatusError as e:
-            if attempt < attempts - 1 and "already exist" in e.response.text:
+            if attempt < attempts - 1 and _is_vmid_conflict(e):
                 backoff = min(1.0 * (attempt + 1), 10.0)
                 logger.warning(f"vmid {vmid} was taken by a concurrent create, retrying {vm_name} in {backoff:.0f}s")
                 await asyncio.sleep(backoff)
