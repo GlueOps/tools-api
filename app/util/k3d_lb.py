@@ -73,7 +73,11 @@ packages:
   - qemu-guest-agent
 runcmd:
   - systemctl enable --now qemu-guest-agent
-  - curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
+  # Only install docker if the image doesn't already ship it. On images that do
+  # (proxmox-images-chisel bakes in docker.io), get.docker.com installs docker-ce
+  # over it and dpkg fails on the conflict, aborting the rest of runcmd — so the
+  # chisel container below never starts.
+  - command -v docker >/dev/null || (curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh)
   - docker run -d --restart always -p 9090:9090 -p 443:443 -p 80:80 docker.io/jpillora/chisel:1 server --reverse --port=9090 --auth='{credentials_for_chisel}'
 """
 
