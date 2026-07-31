@@ -24,6 +24,19 @@ class ChiselNodesRequest(BaseModel):
 class ChiselNodesDeleteRequest(BaseModel):
     captain_domain: str = Field(..., example='nonprod.foobar.onglueops.rocks')
 
+class K3dLbNodesRequest(BaseModel):
+    captain_domain: str = Field(..., example='nonprod.foobar.onglueops.rocks')
+    node_count: int = Field(
+        default=3,
+        ge=1,
+        le=6,
+        example=3,
+        description="Number of exit nodes to create (1-6, default: 3)"
+    )
+
+class K3dLbNodesDeleteRequest(BaseModel):
+    captain_domain: str = Field(..., example='nonprod.foobar.onglueops.rocks')
+
 class StorageBucketsRequest(BaseModel):
     captain_domain: str = Field(...,example = 'nonprod.foobar.onglueops.rocks')
 

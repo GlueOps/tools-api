@@ -35,3 +35,26 @@ MINIO_S3_ACCESS_KEY_ID
 MINIO_S3_SECRET_KEY
 HETZNER_STORAGE_REGION=hel1
 ```
+
+### Required for `/v1/k3d-lb-nodes` (Chisel nodes on Proxmox via Waggle):
+
+```bash
+# Waggle (placement oracle) — datacenter and slot must already exist in Waggle
+WAGGLE_API_URL=                   # base URL of the Waggle server (with or without /api/v1)
+WAGGLE_API_KEY=                   # org API key (wgl_...)
+WAGGLE_DATACENTER_NAME=           # name of the pre-configured datacenter
+WAGGLE_SLOT_NAME=                 # name of the pre-configured slot (VM size)
+
+# Proxmox (VM provisioning)
+PROXMOX_HOST=
+PROXMOX_PORT=8006                 # optional, default: 8006
+PROXMOX_TOKEN_ID=                 # e.g. automation@pve!tools-api
+PROXMOX_TOKEN_SECRET=
+PROXMOX_STORAGE=                  # storage for VM disks, cloud-init ISOs, and cached images
+PROXMOX_BRIDGE=vmbr_public        # optional, default: vmbr_public (the public bridge)
+PROXMOX_VLAN_TAG=                 # optional, omit for no VLAN tag (untagged on the bridge)
+PROXMOX_VERIFY_SSL=true           # optional, default: true
+PROXMOX_DOWNLOAD_SERVER_URL=      # base URL hosting <image>.qcow2 files
+PROXMOX_IMAGE_DOWNLOAD_TIMEOUT=1800  # optional, seconds to wait for image downloads (default: 1800)
+K3D_LB_VM_IMAGE=debian-13-generic-amd64  # optional, default shown
+```
