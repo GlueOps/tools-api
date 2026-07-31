@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "d0702491dc9500198ebc72ba3b949ab3e5f1a6222a91a473fbd7c7552288920c"
+            "sha256": "c47a630f38141377fdb06c822c039385dc709ded06c35a237a81e799b9377276"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -231,20 +231,20 @@
         },
         "boto3": {
             "hashes": [
-                "sha256:67f1544ef97caddd6d0ebd613010981e3990ac843bc010cc202a88b489b182a0",
-                "sha256:a818a2ed37ff555c8c710f9c308a5407ef325c43f4162d7f5ce961e20440ca18"
+                "sha256:0bb298e7ffd72b91615df44bf71c417df80a29d844971e5d665b8bd743a4bb35",
+                "sha256:0bf920e0739346e81c7310b685a3f783bf1fcc62ce7d5c7016508fa25c0d261f"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.10'",
-            "version": "==1.43.61"
+            "version": "==1.43.62"
         },
         "botocore": {
             "hashes": [
-                "sha256:167c8626661561958a8b5d2066e478113c5789a79e6fbc711b249f2c3d5bca5f",
-                "sha256:23a9e8578b08bfb83953d32a08b304bb2cb7a7e2607a44b212c1a39862c2024e"
+                "sha256:76de153de1ba3e242b2e6df6a13ab8a3fb35d17db562462969e661457b63166e",
+                "sha256:94efc419c9f0f41dc2415e4b6b62f04ae21b3ce3930fac47214c4d3f361ea8b8"
             ],
             "markers": "python_version >= '3.10'",
-            "version": "==1.43.61"
+            "version": "==1.43.62"
         },
         "certifi": {
             "hashes": [
@@ -862,7 +862,7 @@
             "version": "==1.8.0"
         },
         "glueops-helpers": {
-            "file": "https://github.com/GlueOps/python-glueops-helpers-library/archive/refs/tags/v0.7.2.zip"
+            "file": "https://github.com/GlueOps/python-glueops-helpers-library/archive/refs/tags/v0.7.3.zip"
         },
         "h11": {
             "hashes": [
