@@ -111,10 +111,14 @@ async def _finalize_cleanup(captain_domain: str, vms: list):
     logger.info(f"Background cloud-init/ISO cleanup complete for captain_domain: {captain_domain}")
 
 
-async def _create_vm_with_vmid_retry(px: ProxmoxClient, node: str, vm_name: str, vcpus: int, memory_mb: int, image: str, iso_filename: str, tags: list) -> str:
-    """/cluster/nextid is non-reserving, so a concurrent creator can claim the same
-    vmid between our fetch and create. Retry on the resulting conflict."""
-    for attempt in range(3):
+async def _create_vm_with_vmid_retry(px: ProxmoxClient, node: str, vm_name: str, vcpus: int, memory_mb: int, image: str, iso_filename: str, tags: list, attempts: int = 3) -> str:
+    """/cluster/nextid is non-reserving, so concurrent creators (our own parallel
+    builds, or anything external) can claim the same vmid between our fetch and
+    create. The collision fails clean at config-create time (nothing is left
+    behind), so retry optimistically: refetch nextid after a short escalating
+    backoff (~1s first round — the winner's config registers almost immediately —
+    capped at 10s for heavily contended rounds)."""
+    for attempt in range(attempts):
         vmid = await px.get_next_vmid()
         try:
             await px.create_vm(
@@ -131,8 +135,10 @@ async def _create_vm_with_vmid_retry(px: ProxmoxClient, node: str, vm_name: str,
             )
             return vmid
         except httpx.HTTPStatusError as e:
-            if attempt < 2 and "already exist" in e.response.text:
-                logger.warning(f"vmid {vmid} was taken by a concurrent create, retrying")
+            if attempt < attempts - 1 and "already exist" in e.response.text:
+                backoff = min(1.0 * (attempt + 1), 10.0)
+                logger.warning(f"vmid {vmid} was taken by a concurrent create, retrying {vm_name} in {backoff:.0f}s")
+                await asyncio.sleep(backoff)
                 continue
             raise
 
@@ -163,15 +169,23 @@ async def create_nodes(request) -> str:
             if len(placements) != node_count:
                 raise RuntimeError(f"Waggle returned {len(placements)} placements for pool {pool['id']}, expected {node_count}")
 
-            vms = []
-            cached_nodes = set()
-            for suffix, placement in zip(suffixes, placements):
+            # Build all VMs concurrently. vmid collisions between our own builds
+            # (or external creators) fail clean at config-create time and are
+            # retried with backoff inside _create_vm_with_vmid_retry, so no lock
+            # is needed. The image-cache step is deduped per node via a shared
+            # task that every build on that node awaits.
+            cache_tasks = {}
+            for placement in placements:
+                node = placement["hypervisor_name"]
+                if node not in cache_tasks:
+                    cache_tasks[node] = asyncio.create_task(px.ensure_image_cached(node, image))
+            create_attempts = 3 + 2 * node_count
+
+            async def build(suffix, placement) -> dict:
                 node = placement["hypervisor_name"]
                 vm_name = f"{captain_domain}-{suffix}"
                 logger.info(f"Creating k3d-lb node {vm_name} on hypervisor {node} (placement {placement['id']})")
-                if node not in cached_nodes:
-                    await px.ensure_image_cached(node, image)
-                    cached_nodes.add(node)
+                await cache_tasks[node]
                 iso_bytes = build_cloudinit_iso(
                     _user_data(credentials_for_chisel).encode(),
                     _meta_data(vm_name).encode(),
@@ -186,11 +200,24 @@ async def create_nodes(request) -> str:
                     image=image,
                     iso_filename=iso_filename,
                     tags=[CREATOR_TAG, MANAGED_TAG, captain_domain],
+                    attempts=create_attempts,
                 )
                 await px.resize_disk(node, vmid, slot["disk_gb"])
                 await px.start_vm(node, vmid)
                 await waggle.set_placement_vmid(placement["id"], int(vmid))
-                vms.append({"vm_name": vm_name, "node": node, "vmid": vmid, "iso_filename": iso_filename})
+                return {"vm_name": vm_name, "node": node, "vmid": vmid, "iso_filename": iso_filename}
+
+            build_results = await asyncio.gather(
+                *(build(suffix, placement) for suffix, placement in zip(suffixes, placements)),
+                return_exceptions=True,
+            )
+            build_failures = [
+                f"{captain_domain}-{suffix}: {r}"
+                for suffix, r in zip(suffixes, build_results) if isinstance(r, BaseException)
+            ]
+            if build_failures:
+                raise RuntimeError(f"VM build failed for {len(build_failures)}/{len(placements)} node(s): " + "; ".join(build_failures))
+            vms = list(build_results)
 
             # Return as soon as every VM's IP is known: the guest agent comes up
             # during cloud-init's package phase, well before the docker install
