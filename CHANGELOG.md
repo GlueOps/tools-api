@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/GlueOps/tools-api/compare/v0.5.0...v0.5.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* harden k3d-lb cleanup and retries per Proxmox expert review ([#86](https://github.com/GlueOps/tools-api/issues/86)) ([32915c2](https://github.com/GlueOps/tools-api/commit/32915c21aa25f698b44cd6a4047a77dbf6cccd1f))
+
 ## [0.5.0](https://github.com/GlueOps/tools-api/compare/v0.4.0...v0.5.0) (2026-07-31)
 
 
