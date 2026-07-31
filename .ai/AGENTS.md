@@ -59,4 +59,4 @@ The `/v1/k3d-lb-nodes` endpoints (`k3d_lb.py`) are the Proxmox-backed equivalent
 ## CI/CD
 
 - **`.github/workflows/container_image.yaml`** — Builds and pushes Docker images to GHCR on any push.
-- **`.github/workflows/cli_release.yaml`** — Builds CLI binaries on every push, uploads as workflow artifacts, and creates a GitHub Release tagged with `github.ref_name`. Cross-compiles for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64.
+- CLI release automation was removed: the old `cli_release.yaml` workflow (release per push, tagged with `github.ref_name`) is disabled repo-wide and its stray `main` tag deleted. CLI binaries are currently built manually via `cli/Makefile` (`make build-all`); releases contain no CLI assets.
