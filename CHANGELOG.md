@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/GlueOps/tools-api/compare/v0.7.0...v0.7.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* delete k3d-lb VMs concurrently instead of one at a time ([#95](https://github.com/GlueOps/tools-api/issues/95)) ([868381c](https://github.com/GlueOps/tools-api/commit/868381cf472304996c6f5696e9de01adb0a6d4c3))
+
 ## [0.7.0](https://github.com/GlueOps/tools-api/compare/v0.6.1...v0.7.0) (2026-07-31)
 
 
