@@ -5,8 +5,8 @@ from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, IncidentioAlertsManifestRequest, CaptainManifestsRequest, KubeApiserverManifestRequest, KubeRbacManifestRequest, GitHubWorkflowRunStatusRequest, VersionResponse
-from util import storage, aws_setup_test_account_credentials, github, hetzner, opsgenie, incidentio, captain_manifests, kube_apiserver, kube_rbac
+from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, K3dLbNodesRequest, K3dLbNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, IncidentioAlertsManifestRequest, CaptainManifestsRequest, KubeApiserverManifestRequest, KubeRbacManifestRequest, GitHubWorkflowRunStatusRequest, VersionResponse
+from util import storage, aws_setup_test_account_credentials, github, hetzner, k3d_lb, opsgenie, incidentio, captain_manifests, kube_apiserver, kube_rbac
 from fastapi.responses import RedirectResponse
 
 
@@ -123,6 +123,32 @@ async def delete_chisel_nodes(request: ChiselNodesDeleteRequest):
     response = hetzner.delete_existing_servers(request)
     logger.info(f"Successfully completed chisel node deletion for captain_domain: {request.captain_domain}")
     return JSONResponse(status_code=200, content={"message": "Successfully deleted chisel nodes."})
+
+
+@app.post("/v1/k3d-lb-nodes", response_class=PlainTextResponse, summary="Creates Chisel nodes on Proxmox (via Waggle placement) for dev/k3d clusters. This allows us to mimic a Cloud Controller for Loadbalancers (e.g. NLBs with EKS)")
+async def create_k3d_lb_nodes(request: K3dLbNodesRequest):
+    """
+        If you are testing within k3ds you will need chisel to provide you with load balancers.
+        For a provided captain_domain this will delete any existing k3d-lb nodes and provision new ones.
+        Placement is decided by Waggle (pool per captain_domain); the VMs are then created on the assigned
+        Proxmox hypervisors and their IPs are read back through the QEMU guest agent.
+        Note: this will generally result in new IPs being provisioned.
+    """
+    logger.info(f"Received POST request to create k3d-lb nodes for captain_domain: {request.captain_domain}")
+    result = await k3d_lb.create_nodes(request)
+    logger.info(f"Successfully completed k3d-lb node creation for captain_domain: {request.captain_domain}")
+    return result
+
+
+@app.delete("/v1/k3d-lb-nodes", summary="Deletes your k3d-lb nodes. Please run this when you are done with development to free up capacity.")
+async def delete_k3d_lb_nodes(request: K3dLbNodesDeleteRequest):
+    """
+        When you are done testing with k3ds this will delete your k3d-lb nodes (Proxmox VMs + Waggle pool) and free up capacity.
+    """
+    logger.info(f"Received DELETE request to delete k3d-lb nodes for captain_domain: {request.captain_domain}")
+    await k3d_lb.delete_nodes(request.captain_domain)
+    logger.info(f"Successfully completed k3d-lb node deletion for captain_domain: {request.captain_domain}")
+    return JSONResponse(status_code=200, content={"message": "Successfully deleted k3d-lb nodes."})
 
 
 @app.post("/v1/opsgenie", response_class=PlainTextResponse, summary="Creates Opsgenie Alerts Manifest")

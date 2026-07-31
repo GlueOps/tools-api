@@ -18,7 +18,7 @@ def create_chisel_yaml(captain_domain, credentials_for_chisel, ip_addresses, suf
     manifest = f"""
 kubectl apply -k https://github.com/FyraLabs/chisel-operator?ref=v0.7.1
 
-kubectl apply -f - <<YAML
+kubectl apply -f - <<'YAML'
 apiVersion: v1
 kind: Secret
 metadata:

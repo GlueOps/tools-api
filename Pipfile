@@ -9,6 +9,8 @@ glueops-helpers = {file = "https://github.com/GlueOps/python-glueops-helpers-lib
 minio = "*"
 boto3 = "*"
 hcloud = "*"
+httpx = "*"
+pycdlib = "*"
 
 [dev-packages]
 
