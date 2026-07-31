@@ -381,14 +381,29 @@ async def _delete_nodes_locked(captain_domain: str):
     await _cancel_stale_cleanup(captain_domain)
 
     vms = await px.list_vms_by_tags([CREATOR_TAG, MANAGED_TAG, captain_domain])
+
+    async def delete_one(vm):
+        logger.info(f"Deleting k3d-lb node {vm['name']} (vmid {vm['vmid']} on {vm['node']})")
+        for attempt in range(3):
+            try:
+                await px.delete_vm(vm["node"], vm["vmid"])
+                return
+            except Exception as e:
+                # Concurrent destroys on one node can hit pmxcfs/flock contention;
+                # PVE already waited internally, so retry straight away.
+                if attempt < 2 and _is_transient_lock_timeout(e):
+                    logger.warning(f"Delete of {vm['name']} hit a transient Proxmox lock timeout, retrying")
+                    continue
+                raise
+
+    # Delete all VMs concurrently — sequential deletes cost the full stop+destroy
+    # task round-trip per VM, which dominates the request for a full-width pool.
+    results = await asyncio.gather(*(delete_one(vm) for vm in vms), return_exceptions=True)
     failures = []
-    for vm in vms:
-        try:
-            logger.info(f"Deleting k3d-lb node {vm['name']} (vmid {vm['vmid']} on {vm['node']})")
-            await px.delete_vm(vm["node"], vm["vmid"])
-        except Exception as e:
-            logger.error(f"Failed to delete k3d-lb node {vm['name']} (vmid {vm['vmid']} on {vm['node']}): {e}")
-            failures.append(f"{vm['name']} (vmid {vm['vmid']} on {vm['node']}): {e}")
+    for vm, r in zip(vms, results):
+        if isinstance(r, BaseException):
+            logger.error(f"Failed to delete k3d-lb node {vm['name']} (vmid {vm['vmid']} on {vm['node']}): {r}")
+            failures.append(f"{vm['name']} (vmid {vm['vmid']} on {vm['node']}): {r}")
 
     try:
         # The library skips any ISO still referenced by a VM config.
