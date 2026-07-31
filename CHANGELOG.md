@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.1](https://github.com/GlueOps/tools-api/compare/v0.3.0...v0.3.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* default k3d-lb image download to the official Debian cloud images site ([#79](https://github.com/GlueOps/tools-api/issues/79)) ([902d29d](https://github.com/GlueOps/tools-api/commit/902d29de80a08549f706102c840bf16e10c2c789))
+
+
+### Documentation
+
+* reflect removal of CLI release automation ([#77](https://github.com/GlueOps/tools-api/issues/77)) ([6fe2046](https://github.com/GlueOps/tools-api/commit/6fe204651d8a374a2c56160372a15c754e57704d))
+
 ## [0.3.0](https://github.com/GlueOps/tools-api/compare/v0.2.0...v0.3.0) (2026-07-31)
 
 
