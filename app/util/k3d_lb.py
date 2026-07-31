@@ -82,20 +82,39 @@ def _meta_data(vm_name: str) -> str:
     return f"instance-id: {vm_name}\nlocal-hostname: {vm_name}\n"
 
 
-# Hold strong references so fire-and-forget tasks aren't garbage-collected mid-run.
-_background_tasks = set()
+# One background cleanup task per captain_domain (strong refs so they aren't
+# garbage-collected mid-run). A newer create/delete for the same domain must
+# cancel the previous run's task: it holds stale (vmid, iso_filename) pairs,
+# and the deterministic ISO filenames may meanwhile belong to the successor.
+_cleanup_tasks = {}
 
 
-def _spawn_background(coro, label: str):
+def _spawn_cleanup(captain_domain: str, coro):
     task = asyncio.create_task(coro)
-    _background_tasks.add(task)
+    _cleanup_tasks[captain_domain] = task
 
     def _done(t):
-        _background_tasks.discard(t)
+        if _cleanup_tasks.get(captain_domain) is t:
+            del _cleanup_tasks[captain_domain]
         if not t.cancelled() and t.exception():
-            logger.error(f"Background task {label!r} failed: {t.exception()!r}")
+            logger.error(f"Background cleanup for {captain_domain!r} failed: {t.exception()!r}")
 
     task.add_done_callback(_done)
+
+
+async def _cancel_stale_cleanup(captain_domain: str):
+    """Called under the domain lock before any create/delete touches VMs/ISOs."""
+    task = _cleanup_tasks.get(captain_domain)
+    if task is None or task.done():
+        return
+    logger.info(f"Cancelling superseded background cleanup for {captain_domain}")
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+    except Exception as e:
+        logger.warning(f"Superseded cleanup for {captain_domain} raised during cancel: {e}")
 
 
 async def _finalize_cleanup(captain_domain: str, vms: list):
@@ -127,6 +146,21 @@ def _is_vmid_conflict(e: Exception) -> bool:
     return "already exist" in e.response.text or "File exists" in e.response.text
 
 
+def _is_transient_lock_timeout(e: Exception) -> bool:
+    """Parallel creates on one node/storage can hit pmxcfs/flock contention:
+    'cfs-lock ... got lock request timeout' / \"can't lock file ... got timeout\".
+    These surface as HTTP errors from the synchronous part of the create call,
+    or as RuntimeError('Proxmox task failed: ...') via poll_task when the lock
+    is taken inside the worker. Both are transient — retrying is correct."""
+    if isinstance(e, httpx.HTTPStatusError):
+        text = e.response.text
+    elif isinstance(e, RuntimeError):
+        text = str(e)
+    else:
+        return False
+    return "got lock request timeout" in text or "- got timeout" in text
+
+
 async def _create_vm_with_vmid_retry(px: ProxmoxClient, node: str, vm_name: str, vcpus: int, memory_mb: int, image: str, iso_filename: str, tags: list, attempts: int = 3) -> str:
     """/cluster/nextid is non-reserving, so concurrent creators (our own parallel
     builds, or anything external) can claim the same vmid between our fetch and
@@ -150,10 +184,11 @@ async def _create_vm_with_vmid_retry(px: ProxmoxClient, node: str, vm_name: str,
                 vlan_tag=os.getenv("PROXMOX_VLAN_TAG") or None,
             )
             return vmid
-        except httpx.HTTPStatusError as e:
-            if attempt < attempts - 1 and _is_vmid_conflict(e):
+        except (httpx.HTTPStatusError, RuntimeError) as e:
+            if attempt < attempts - 1 and (_is_vmid_conflict(e) or _is_transient_lock_timeout(e)):
                 backoff = min(1.0 * (attempt + 1), 10.0)
-                logger.warning(f"vmid {vmid} was taken by a concurrent create, retrying {vm_name} in {backoff:.0f}s")
+                reason = "was taken by a concurrent create" if _is_vmid_conflict(e) else "hit a transient Proxmox lock timeout"
+                logger.warning(f"vmid {vmid} {reason}, retrying {vm_name} in {backoff:.0f}s")
                 await asyncio.sleep(backoff)
                 continue
             raise
@@ -257,7 +292,7 @@ async def create_nodes(request) -> str:
             # Cloud-init wait + ISO eject/delete happen in the background so the
             # response isn't gated on the docker install. If this task dies, the
             # orphan-ISO sweep in delete_nodes cleans up on the next POST/DELETE.
-            _spawn_background(_finalize_cleanup(captain_domain, vms), f"k3d-lb cleanup for {captain_domain}")
+            _spawn_cleanup(captain_domain, _finalize_cleanup(captain_domain, vms))
         except Exception as e:
             logger.error(f"Error creating k3d-lb nodes for {captain_domain}: {str(e)}")
             raise HTTPException(status_code=500, detail=(
@@ -279,6 +314,10 @@ async def _delete_nodes_locked(captain_domain: str):
     logger.info(f"Starting deletion of existing k3d-lb nodes for captain_domain: {captain_domain}")
     px = _proxmox()
     waggle = _waggle()
+
+    # A previous run's background cleanup may still be polling stale vmids and
+    # would otherwise delete ISOs by (reused) filename after we recreate them.
+    await _cancel_stale_cleanup(captain_domain)
 
     vms = await px.list_vms_by_tags([CREATOR_TAG, MANAGED_TAG, captain_domain])
     failures = []
