@@ -37,7 +37,9 @@ def _proxmox() -> ProxmoxClient:
             storage=os.environ["PROXMOX_STORAGE"],
             port=int(os.getenv("PROXMOX_PORT", "8006")),
             verify_ssl=os.getenv("PROXMOX_VERIFY_SSL", "true").lower() not in ("false", "0", "no"),
-            download_server_url=os.environ["PROXMOX_DOWNLOAD_SERVER_URL"],
+            # The PVE node fetches <base>/<image>.qcow2 itself; default to the
+            # official Debian cloud images site (needs internet egress from the node).
+            download_server_url=os.getenv("PROXMOX_DOWNLOAD_SERVER_URL", "https://cloud.debian.org/images/cloud/trixie/latest"),
             download_timeout=float(os.getenv("PROXMOX_IMAGE_DOWNLOAD_TIMEOUT", "1800")),
         )
     return _proxmox_client

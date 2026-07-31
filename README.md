@@ -54,7 +54,9 @@ PROXMOX_STORAGE=                  # storage for VM disks, cloud-init ISOs, and c
 PROXMOX_BRIDGE=vmbr_public        # optional, default: vmbr_public (the public bridge)
 PROXMOX_VLAN_TAG=                 # optional, omit for no VLAN tag (untagged on the bridge)
 PROXMOX_VERIFY_SSL=true           # optional, default: true
-PROXMOX_DOWNLOAD_SERVER_URL=      # base URL hosting <image>.qcow2 files
+PROXMOX_DOWNLOAD_SERVER_URL=      # optional, default: https://cloud.debian.org/images/cloud/trixie/latest
+                                  # (the PVE node downloads <base>/<image>.qcow2 itself, so it needs
+                                  #  internet egress; point at an internal mirror to avoid that)
 PROXMOX_IMAGE_DOWNLOAD_TIMEOUT=1800  # optional, seconds to wait for image downloads (default: 1800)
 K3D_LB_VM_IMAGE=debian-13-generic-amd64  # optional, default shown
 ```
