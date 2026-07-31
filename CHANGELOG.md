@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/GlueOps/tools-api/compare/v0.4.0...v0.5.0) (2026-07-31)
+
+
+### Features
+
+* prefix cloud-init ISOs with tools-api and skip in-use ISOs in the sweep ([#85](https://github.com/GlueOps/tools-api/issues/85)) ([6991fce](https://github.com/GlueOps/tools-api/commit/6991fce5fedb38682f3540ccf4ee83916f877a8f))
+
+
+### Bug Fixes
+
+* retry vmid conflicts reported as atomic-rename 'File exists' errors ([#83](https://github.com/GlueOps/tools-api/issues/83)) ([7636ac6](https://github.com/GlueOps/tools-api/commit/7636ac609a90d982a2626216b0d4ab3593bf170c))
+
 ## [0.4.0](https://github.com/GlueOps/tools-api/compare/v0.3.1...v0.4.0) (2026-07-31)
 
 
