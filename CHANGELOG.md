@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/GlueOps/tools-api/compare/v0.3.1...v0.4.0) (2026-07-31)
+
+
+### Features
+
+* update docker/metadata-action to v6.1.0 #minor ([#69](https://github.com/GlueOps/tools-api/issues/69)) ([baa05f8](https://github.com/GlueOps/tools-api/commit/baa05f8b3b59d34f50cceeb27e9c2e6ca9185b47))
+
+
+### Bug Fixes
+
+* build k3d-lb VMs concurrently instead of one at a time ([#82](https://github.com/GlueOps/tools-api/issues/82)) ([e4db6ed](https://github.com/GlueOps/tools-api/commit/e4db6edebd48b8a6635280d683467070acd11f6d))
+* return k3d-lb manifest as soon as IPs are known instead of waiting for full cloud-init ([#80](https://github.com/GlueOps/tools-api/issues/80)) ([aee133d](https://github.com/GlueOps/tools-api/commit/aee133d24ceb809f2aff53331b0ab42799158473))
+
 ## [0.3.1](https://github.com/GlueOps/tools-api/compare/v0.3.0...v0.3.1) (2026-07-31)
 
 
