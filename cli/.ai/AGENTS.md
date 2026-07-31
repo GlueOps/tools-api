@@ -117,8 +117,4 @@ cli/
 
 ## CI/CD
 
-`.github/workflows/cli_release.yaml` builds CLI binaries on every push:
-- Cross-compiles for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64 via Docker
-- Uploads binaries as workflow artifacts
-- Creates a GitHub Release tagged with `github.ref_name` (rolling `main` release for branch pushes, versioned releases for tag pushes)
-- Version is injected via ldflags from the git ref
+There is no CLI release automation: the old `cli_release.yaml` workflow (release per push, tagged with `github.ref_name` — which shadowed the `main` branch with a `main` tag) was removed from the repo and is disabled repo-wide in Actions. Build binaries manually with `make build-all` (cross-compiles linux/darwin × amd64/arm64 via Docker; version injected via ldflags).
