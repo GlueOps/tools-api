@@ -60,6 +60,12 @@ def _pool_name(captain_domain: str) -> str:
     return f"{POOL_NAME_PREFIX}{captain_domain}"
 
 
+def _iso_filename(vm_name: str) -> str:
+    # tools-api- prefix marks the ISO as ours (storage volumes can't carry tags,
+    # so the filename is the only identity an ISO has)
+    return f"{CREATOR_TAG}-{vm_name}-cloudinit.iso"
+
+
 def _user_data(credentials_for_chisel: str) -> str:
     return f"""#cloud-config
 package_update: true
@@ -200,7 +206,7 @@ async def create_nodes(request) -> str:
                     _user_data(credentials_for_chisel).encode(),
                     _meta_data(vm_name).encode(),
                 )
-                iso_filename = await px.upload_iso(node, f"{vm_name}-cloudinit.iso", iso_bytes)
+                iso_filename = await px.upload_iso(node, _iso_filename(vm_name), iso_bytes)
                 vmid = await _create_vm_with_vmid_retry(
                     px,
                     node=node,
@@ -285,7 +291,8 @@ async def _delete_nodes_locked(captain_domain: str):
             failures.append(f"{vm['name']} (vmid {vm['vmid']} on {vm['node']}): {e}")
 
     try:
-        deleted = await px.delete_isos_matching(rf"{re.escape(captain_domain)}-exit\d+-cloudinit\.iso")
+        # The library skips any ISO still referenced by a VM config.
+        deleted = await px.delete_isos_matching(rf"{CREATOR_TAG}-{re.escape(captain_domain)}-exit\d+-cloudinit\.iso")
         if deleted:
             logger.info(f"Deleted {deleted} orphaned cloud-init ISO(s) for {captain_domain}")
     except Exception as e:
