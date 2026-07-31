@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/GlueOps/tools-api/compare/v0.5.1...v0.6.0) (2026-07-31)
+
+
+### Features
+
+* update docker/setup-buildx-action to v4.1.0 #minor ([#70](https://github.com/GlueOps/tools-api/issues/70)) ([ffa55b4](https://github.com/GlueOps/tools-api/commit/ffa55b4f1602e3b3d7717509b1bde4e81944e765))
+
+
+### Bug Fixes
+
+* skip docker install when the image already ships docker ([#88](https://github.com/GlueOps/tools-api/issues/88)) ([93aa26b](https://github.com/GlueOps/tools-api/commit/93aa26b107ed9e4cf411f06e040ae42f73cf815f))
+
 ## [0.5.1](https://github.com/GlueOps/tools-api/compare/v0.5.0...v0.5.1) (2026-07-31)
 
 
