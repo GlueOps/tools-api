@@ -19,6 +19,10 @@ POOL_NAME_PREFIX = "k3d-lb-"
 MANAGED_TAG = "glueops-k3d-lb"
 CREATOR_TAG = "tools-api"
 
+# Cached image volumes we own; the checksum suffix makes each release distinct,
+# so stale ones are pruned by this prefix after a successful create.
+IMAGE_PREFIX = "tools-api-k3d-lb-"
+
 # Serializes create/delete per captain_domain so a concurrent POST/DELETE for the
 # same domain can't interleave (single-worker FastAPI, so an asyncio.Lock suffices).
 _domain_locks = {}
@@ -72,16 +76,20 @@ def _iso_filename(vm_name: str) -> str:
 
 
 def _user_data(credentials_for_chisel: str) -> str:
+    # K3D_LB_VM_IMAGE (GlueOps/proxmox-images-chisel) bakes in qemu-guest-agent,
+    # docker, and the chisel image, so the fast path here is just `docker run`:
+    # no package_update/packages stage, which would otherwise cost an apt-get
+    # update on every boot even when nothing needs installing.
+    #
+    # The `command -v` guards only fire on an image lacking them (e.g. a stock
+    # Debian cloud image) — that still works, just slower. Installing docker on
+    # an image that already has docker.io breaks the boot: get.docker.com pulls
+    # docker-ce over it, dpkg fails on the conflict, and cloud-init abandons the
+    # rest of runcmd before chisel ever starts.
     return f"""#cloud-config
-package_update: true
-packages:
-  - qemu-guest-agent
 runcmd:
+  - command -v qemu-ga >/dev/null || (apt-get update && apt-get install -y qemu-guest-agent)
   - systemctl enable --now qemu-guest-agent
-  # Only install docker if the image doesn't already ship it. On images that do
-  # (proxmox-images-chisel bakes in docker.io), get.docker.com installs docker-ce
-  # over it and dpkg fails on the conflict, aborting the rest of runcmd — so the
-  # chisel container below never starts.
   - command -v docker >/dev/null || (curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh)
   - docker run -d --restart always -p 9090:9090 -p 443:443 -p 80:80 docker.io/jpillora/chisel:1 server --reverse --port=9090 --auth='{credentials_for_chisel}'
 """
@@ -152,7 +160,7 @@ async def _cancel_stale_cleanup(captain_domain: str):
         logger.warning(f"Superseded cleanup for {captain_domain} raised during cancel: {e}")
 
 
-async def _finalize_cleanup(captain_domain: str, vms: list):
+async def _finalize_cleanup(captain_domain: str, vms: list, cached_image=None):
     """Wait for cloud-init to finish, then eject and delete each cloud-init ISO.
 
     Runs after the create response has been returned; deleting the ISO while
@@ -168,6 +176,19 @@ async def _finalize_cleanup(captain_domain: str, vms: list):
         await px.eject_and_delete_iso(vm["node"], vm["vmid"], vm["iso_filename"])
 
     await asyncio.gather(*(one(vm) for vm in vms))
+
+    # Every image release leaves the previous checksum-keyed volume cached on
+    # each node (~700MB). Prune here rather than in the create path: by now our
+    # own imports are done, and a concurrent create for another captain_domain
+    # would be importing the current image, which is the one we keep.
+    if cached_image:
+        try:
+            pruned = await px.prune_import_images(rf"{re.escape(IMAGE_PREFIX)}.*\.qcow2", keep=cached_image)
+            if pruned:
+                logger.info(f"Pruned {pruned} stale k3d-lb image(s) from the import cache")
+        except Exception as e:
+            logger.warning(f"Stale image prune failed: {e}")
+
     logger.info(f"Background cloud-init/ISO cleanup complete for captain_domain: {captain_domain}")
 
 
@@ -332,7 +353,7 @@ async def create_nodes(request) -> str:
             # Cloud-init wait + ISO eject/delete happen in the background so the
             # response isn't gated on the docker install. If this task dies, the
             # orphan-ISO sweep in delete_nodes cleans up on the next POST/DELETE.
-            _spawn_cleanup(captain_domain, _finalize_cleanup(captain_domain, vms))
+            _spawn_cleanup(captain_domain, _finalize_cleanup(captain_domain, vms, cache_name))
         except Exception as e:
             logger.error(f"Error creating k3d-lb nodes for {captain_domain}: {str(e)}")
             raise HTTPException(status_code=500, detail=(

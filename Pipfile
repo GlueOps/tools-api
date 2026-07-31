@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 fastapi = {extras = ["standard"], version = "*"}
-glueops-helpers = {file = "https://github.com/GlueOps/python-glueops-helpers-library/archive/refs/tags/v0.7.3.zip"}
+glueops-helpers = {file = "https://github.com/GlueOps/python-glueops-helpers-library/archive/refs/tags/v0.7.4.zip"}
 minio = "*"
 boto3 = "*"
 hcloud = "*"
