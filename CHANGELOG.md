@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/GlueOps/tools-api/compare/v0.7.1...v0.7.2) (2026-08-29)
+
+
+### Bug Fixes
+
+* bump cluster-monitoring to v4.5.0 for heartbeat retry fix ([#105](https://github.com/GlueOps/tools-api/issues/105)) ([11d97f6](https://github.com/GlueOps/tools-api/commit/11d97f6ed184477ec73a26cdddcec541868e7396))
+
 ## [0.7.1](https://github.com/GlueOps/tools-api/compare/v0.7.0...v0.7.1) (2026-07-31)
 
 
