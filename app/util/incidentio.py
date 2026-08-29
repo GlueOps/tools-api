@@ -38,7 +38,7 @@ spec:
         image:
           registry: ghcr.repo.gpkg.io
           repository: glueops/cluster-monitoring
-          tag: v4.0.0@sha256:09c979b662c08de6aaac722f648cbd6e58e89d76a017db782ca6f2810ca4887e
+          tag: v4.5.0@sha256:e96c01122a3bcfb8c43e5ced621ac9b02ac2d3f224cb380bd12940a1227368c4
           pullPolicy: IfNotPresent
         deployment:
           replicas: 1
