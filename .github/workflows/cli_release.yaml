@@ -1,0 +1,61 @@
+name: CLI Release
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set build variables
+        id: vars
+        run: |
+          echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          echo "short_sha=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          echo "build_timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_OUTPUT
+
+      - name: Build CLI binaries
+        working-directory: cli
+        run: |
+          make build-all \
+            VERSION=${{ steps.vars.outputs.version }} \
+            COMMIT_SHA=${{ github.sha }} \
+            SHORT_SHA=${{ steps.vars.outputs.short_sha }} \
+            BUILD_TIMESTAMP=${{ steps.vars.outputs.build_timestamp }} \
+            GIT_REF=${{ github.ref_name }}
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: tools-cli-binaries
+          path: |
+            cli/tools-linux-amd64
+            cli/tools-linux-arm64
+            cli/tools-darwin-amd64
+            cli/tools-darwin-arm64
+
+      - name: Delete existing release for this ref
+        run: gh release delete "${{ github.ref_name }}" --yes 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@1853d73993c8ca1b2c9c1a7fede39682d0ab5c2a # v2.5.3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          files: |
+            cli/tools-linux-amd64
+            cli/tools-linux-arm64
+            cli/tools-darwin-amd64
+            cli/tools-darwin-arm64
+          body: |
+            CLI binaries built from `${{ github.sha }}` on `${{ github.ref_name }}`.

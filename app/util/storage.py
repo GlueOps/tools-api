@@ -4,7 +4,6 @@ from minio.error import S3Error
 from minio.deleteobjects import DeleteObject
 import re
 import os
-import yaml
 import glueops.setup_logging
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -59,82 +58,59 @@ def make_compliant_name(name: str) -> str:
 
 def parameterize_storage_config(bucket_prefix):
     """
-    Builds the loki/thanos/tempo storage config as three terraform heredoc
-    assignments ready to paste into a tenant's `cluster_environments` block.
-
-    The YAML for each heredoc is generated from a dict via ``yaml.safe_dump`` so
-    it is always valid, consistently-indented, standard YAML. The consuming
-    platform chart normalizes indentation (yamldecode/yamlencode/indent), so the
-    exact indentation emitted here is not load-bearing.
-
+    Parameterizes the storage configuration template with the correct bucket names.
+    
     Args:
+        template (str): The storage configuration template.
         bucket_prefix (str): The prefix for the buckets.
-
+    
     Returns:
         str: The parameterized storage configuration.
     """
-    endpoint_host = f"{MINIO_REGION}.your-objectstorage.com"
-
-    loki_storage = {
-        "bucketNames": {
-            "chunks": f"{bucket_prefix}-loki",
-            "ruler": f"{bucket_prefix}-loki",
-            "admin": f"{bucket_prefix}-loki",
-        },
-        "type": "s3",
-        "s3": {
-            "s3": f"{bucket_prefix}-loki",
-            "endpoint": f"https://{endpoint_host}",
-            "region": "us-east-1",
-            "accessKeyId": ACCESS_KEY,
-            "secretAccessKey": SECRET_KEY,
-            "s3ForcePathStyle": False,
-            "insecure": False,
-        },
-    }
-    thanos_storage = {
-        "type": "s3",
-        "config": {
-            "bucket": f"{bucket_prefix}-thanos",
-            "endpoint": endpoint_host,
-            "access_key": ACCESS_KEY,
-            "secret_key": SECRET_KEY,
-        },
-    }
-    tempo_storage = {
-        "backend": "s3",
-        "s3": {
-            "access_key": ACCESS_KEY,
-            "secret_key": SECRET_KEY,
-            "bucket": f"{bucket_prefix}-tempo",
-            "endpoint": endpoint_host,
-            "insecure": False,
-        },
-    }
-
-    return "".join(
-        f"      {name} = <<EOT\n{_render_storage_yaml(value)}\nEOT\n"
-        for name, value in (
-            ("loki_storage", loki_storage),
-            ("thanos_storage", thanos_storage),
-            ("tempo_storage", tempo_storage),
-        )
-    )
-
-
-def _render_storage_yaml(value):
-    """Serialize a storage-config dict to clean, block-style YAML.
-
-    ``sort_keys=False`` preserves the readable field order above; ``width`` is
-    large so long secret/endpoint values are never line-wrapped (a wrapped line
-    would corrupt the pasted heredoc).
+    # Example usage
+    template = """
+      loki_storage   = <<EOT
+bucketNames:
+        chunks: {loki_bucket}
+        ruler: {loki_bucket}
+        admin: {loki_bucket}
+   type: s3
+   s3:
+      s3: {loki_bucket}
+      endpoint: https://{region}.your-objectstorage.com
+      region: us-east-1
+      accessKeyId: {access_key}
+      secretAccessKey: {secret_key}
+      s3ForcePathStyle: false
+      insecure: false
+    EOT
+      thanos_storage = <<EOT
+type: s3
+    config:
+        bucket: {thanos_bucket}
+        endpoint: {region}.your-objectstorage.com
+        access_key: {access_key}
+        secret_key: {secret_key}
+EOT
+      tempo_storage  = <<EOT
+backend: s3
+    s3:
+        access_key: {access_key}
+        secret_key: {secret_key}
+        bucket:  {tempo_bucket}
+        endpoint: {region}.your-objectstorage.com
+        insecure: false
+EOT
     """
-    return yaml.safe_dump(
-        value,
-        default_flow_style=False,
-        sort_keys=False,
-        width=4096,
-    ).strip()
+
+    return template.format(
+        loki_bucket=f"{bucket_prefix}-loki",
+        thanos_bucket=f"{bucket_prefix}-thanos",
+        tempo_bucket=f"{bucket_prefix}-tempo",
+        access_key=ACCESS_KEY,
+        secret_key=SECRET_KEY,
+        region=MINIO_REGION
+    )
 
 
 
