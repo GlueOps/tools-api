@@ -104,8 +104,6 @@ app = FastAPI(
         "defaultModelsExpandDepth": -1,
         # Land on a scannable list of collapsed operations rather than a wall of forms.
         "docExpansion": "none",
-        # Search box that filters by tag/path.
-        "filter": True,
         "tryItOutEnabled": True,
         "displayRequestDuration": True,
         "persistAuthorization": True,
