@@ -234,7 +234,7 @@
     },
     "/v1/k3d-lb-nodes": {
       "post": {
-        "summary": "Create k3d-lb nodes on Proxmox (destructive)",
+        "summary": "Recreate k3d-lb nodes on Proxmox (destructive)",
         "description": "Creates Chisel nodes on Proxmox (via Waggle placement) for dev/k3d clusters. This allows us to\nmimic a Cloud Controller for Loadbalancers (e.g. NLBs with EKS).\n\nIf you are testing within k3ds you will need chisel to provide you with load balancers.\nFor a provided captain_domain this will delete any existing k3d-lb nodes and provision new ones.\nPlacement is decided by Waggle (pool per captain_domain); the VMs are then created on the assigned\nProxmox hypervisors and their IPs are read back through the QEMU guest agent.\nNote: this will generally result in new IPs being provisioned.",
         "operationId": "create_k3d_lb_nodes_v1_k3d_lb_nodes_post",
         "requestBody": {
