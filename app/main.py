@@ -121,6 +121,14 @@ SWAGGER_UI_CSS = """
 <style>
   .swagger-ui .responses-wrapper > .opblock-section-header { display: none; }
   .swagger-ui table.responses-table:not(.live-responses-table) { display: none; }
+
+  /* Request bodies here are 3-6 lines of JSON, against a stock 280px minimum sized for
+     far larger payloads, so most of the box is empty. Matched on .body-param__text so the
+     curl box rendered after Execute keeps its own (deliberately smaller) height. */
+  .swagger-ui textarea.body-param__text { min-height: 140px; }
+  /* 50px of chrome for a one-line "Parameters" / "Request body" label, twice per operation. */
+  .swagger-ui .opblock .opblock-section-header { min-height: 36px; }
+  .swagger-ui .highlight-code > .microlight { min-height: auto; }
 </style>
 """
 
