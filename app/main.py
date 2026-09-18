@@ -233,7 +233,7 @@ async def get_workflow_run_status(request: GitHubWorkflowRunStatusRequest):
     """
     return github.get_workflow_run_status(request.run_url)
 
-@app.post("/v1/k3d-lb-nodes", response_class=PlainTextResponse, tags=["Load Balancers"], summary="Create k3d-lb nodes on Proxmox")
+@app.post("/v1/k3d-lb-nodes", response_class=PlainTextResponse, tags=["Load Balancers"], summary="Create k3d-lb nodes on Proxmox (destructive)")
 async def create_k3d_lb_nodes(request: K3dLbNodesRequest):
     """
         Creates Chisel nodes on Proxmox (via Waggle placement) for dev/k3d clusters. This allows us to
