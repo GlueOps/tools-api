@@ -126,7 +126,7 @@ async def swagger_ui(request: Request):
     return HTMLResponse(html.body.decode().replace("</head>", SWAGGER_UI_CSS + "</head>"))
 
 
-@app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+@app.api_route(app.swagger_ui_oauth2_redirect_url, methods=["GET", "HEAD"], include_in_schema=False)
 async def swagger_ui_redirect():
     return get_swagger_ui_oauth2_redirect_html()
 
