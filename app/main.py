@@ -5,8 +5,8 @@ from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, K3dLbNodesRequest, K3dLbNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, IncidentioAlertsManifestRequest, CaptainManifestsRequest, KubeApiserverManifestRequest, KubeRbacManifestRequest, GitHubWorkflowRunStatusRequest, VersionResponse
-from util import storage, aws_setup_test_account_credentials, github, k3d_lb, opsgenie, incidentio, captain_manifests, kube_apiserver, kube_rbac
+from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, K3dLbNodesRequest, K3dLbNodesDeleteRequest, ResetGitHubOrganizationRequest, IncidentioAlertsManifestRequest, CaptainManifestsRequest, KubeApiserverManifestRequest, KubeRbacManifestRequest, GitHubWorkflowRunStatusRequest, VersionResponse
+from util import storage, aws_setup_test_account_credentials, github, k3d_lb, incidentio, captain_manifests, kube_apiserver, kube_rbac
 from fastapi.responses import RedirectResponse
 
 
@@ -65,7 +65,7 @@ TAGS_METADATA = [
     },
     {
         "name": "Alerting",
-        "description": "Alertmanager configuration manifests for the supported alerting providers.",
+        "description": "Alertmanager configuration manifests for incident.io.",
     },
     {
         "name": "Meta",
@@ -212,13 +212,6 @@ async def delete_k3d_lb_nodes(request: K3dLbNodesDeleteRequest):
     logger.info(f"Successfully completed k3d-lb node deletion for captain_domain: {request.captain_domain}")
     return JSONResponse(status_code=200, content={"message": "Successfully deleted k3d-lb nodes."})
 
-
-@app.post("/v1/opsgenie", response_class=PlainTextResponse, tags=["Alerting"], summary="Generate Opsgenie alerts manifest")
-async def create_opsgeniealerts_manifest(request: OpsgenieAlertsManifestRequest):
-    """
-        Create a opsgenie/alertmanager configuration. Do this for any clusters you want alerts on.
-    """
-    return opsgenie.create_opsgeniealerts_manifest(request)
 
 @app.post("/v1/incidentio", response_class=PlainTextResponse, tags=["Alerting"], summary="Generate incident.io alerts manifest")
 async def create_incidentioalerts_manifest(request: IncidentioAlertsManifestRequest):

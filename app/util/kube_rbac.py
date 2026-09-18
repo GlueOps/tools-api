@@ -2,7 +2,7 @@ import re
 from fastapi import HTTPException
 
 # RFC 1123 DNS hostname (multi-label). Mirrors kube_apiserver.py's _HOSTNAME_RE; kept local so this
-# module stays independent (same low-coupling style as opsgenie.py / incidentio.py).
+# module stays independent (same low-coupling style as incidentio.py).
 _HOSTNAME_RE = re.compile(
     r'^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$'
 )

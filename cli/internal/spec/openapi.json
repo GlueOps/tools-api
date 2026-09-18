@@ -330,48 +330,6 @@
         }
       }
     },
-    "/v1/opsgenie": {
-      "post": {
-        "tags": [
-          "Alerting"
-        ],
-        "summary": "Generate Opsgenie alerts manifest",
-        "description": "Create a opsgenie/alertmanager configuration. Do this for any clusters you want alerts on.",
-        "operationId": "create_opsgeniealerts_manifest_v1_opsgenie_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OpsgenieAlertsManifestRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/incidentio": {
       "post": {
         "tags": [
@@ -769,26 +727,6 @@
         ],
         "title": "KubeRbacManifestRequest"
       },
-      "OpsgenieAlertsManifestRequest": {
-        "properties": {
-          "captain_domain": {
-            "type": "string",
-            "title": "Captain Domain",
-            "example": "nonprod.foobar.onglueops.rocks"
-          },
-          "opsgenie_api_key": {
-            "type": "string",
-            "title": "Opsgenie Api Key",
-            "example": "6825b4ef-4e84-44a1-8450-b46b02852add"
-          }
-        },
-        "type": "object",
-        "required": [
-          "captain_domain",
-          "opsgenie_api_key"
-        ],
-        "title": "OpsgenieAlertsManifestRequest"
-      },
       "ResetGitHubOrganizationRequest": {
         "properties": {
           "captain_domain": {
@@ -938,7 +876,7 @@
     },
     {
       "name": "Alerting",
-      "description": "Alertmanager configuration manifests for the supported alerting providers."
+      "description": "Alertmanager configuration manifests for incident.io."
     },
     {
       "name": "Meta",

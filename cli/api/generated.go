@@ -91,12 +91,6 @@ type KubeRbacManifestRequest struct {
 	TenantGithubOrganizationName string `json:"tenant_github_organization_name"`
 }
 
-// OpsgenieAlertsManifestRequest defines model for OpsgenieAlertsManifestRequest.
-type OpsgenieAlertsManifestRequest struct {
-	CaptainDomain  string `json:"captain_domain"`
-	OpsgenieApiKey string `json:"opsgenie_api_key"`
-}
-
 // ResetGitHubOrganizationRequest defines model for ResetGitHubOrganizationRequest.
 type ResetGitHubOrganizationRequest struct {
 	CaptainDomain          string `json:"captain_domain"`
@@ -165,9 +159,6 @@ type NukeAwsCaptainAccountV1NukeAwsCaptainAccountDeleteJSONRequestBody = AwsNuke
 
 // NukeCaptainDomainDataV1NukeCaptainDomainDataDeleteJSONRequestBody defines body for NukeCaptainDomainDataV1NukeCaptainDomainDataDelete for application/json ContentType.
 type NukeCaptainDomainDataV1NukeCaptainDomainDataDeleteJSONRequestBody = CaptainDomainNukeDataAndBackupsRequest
-
-// CreateOpsgeniealertsManifestV1OpsgeniePostJSONRequestBody defines body for CreateOpsgeniealertsManifestV1OpsgeniePost for application/json ContentType.
-type CreateOpsgeniealertsManifestV1OpsgeniePostJSONRequestBody = OpsgenieAlertsManifestRequest
 
 // ResetGithubOrganizationV1ResetGithubOrganizationDeleteJSONRequestBody defines body for ResetGithubOrganizationV1ResetGithubOrganizationDelete for application/json ContentType.
 type ResetGithubOrganizationV1ResetGithubOrganizationDeleteJSONRequestBody = ResetGitHubOrganizationRequest
@@ -357,11 +348,6 @@ type ClientInterface interface {
 	NukeCaptainDomainDataV1NukeCaptainDomainDataDeleteWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	NukeCaptainDomainDataV1NukeCaptainDomainDataDelete(ctx context.Context, body NukeCaptainDomainDataV1NukeCaptainDomainDataDeleteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreateOpsgeniealertsManifestV1OpsgeniePostWithBody request with any body
-	CreateOpsgeniealertsManifestV1OpsgeniePostWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	CreateOpsgeniealertsManifestV1OpsgeniePost(ctx context.Context, body CreateOpsgeniealertsManifestV1OpsgeniePostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ResetGithubOrganizationV1ResetGithubOrganizationDeleteWithBody request with any body
 	ResetGithubOrganizationV1ResetGithubOrganizationDeleteWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -588,30 +574,6 @@ func (c *Client) NukeCaptainDomainDataV1NukeCaptainDomainDataDeleteWithBody(ctx 
 
 func (c *Client) NukeCaptainDomainDataV1NukeCaptainDomainDataDelete(ctx context.Context, body NukeCaptainDomainDataV1NukeCaptainDomainDataDeleteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewNukeCaptainDomainDataV1NukeCaptainDomainDataDeleteRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateOpsgeniealertsManifestV1OpsgeniePostWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateOpsgeniealertsManifestV1OpsgeniePostRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateOpsgeniealertsManifestV1OpsgeniePost(ctx context.Context, body CreateOpsgeniealertsManifestV1OpsgeniePostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateOpsgeniealertsManifestV1OpsgeniePostRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1066,46 +1028,6 @@ func NewNukeCaptainDomainDataV1NukeCaptainDomainDataDeleteRequestWithBody(server
 	return req, nil
 }
 
-// NewCreateOpsgeniealertsManifestV1OpsgeniePostRequest calls the generic CreateOpsgeniealertsManifestV1OpsgeniePost builder with application/json body
-func NewCreateOpsgeniealertsManifestV1OpsgeniePostRequest(server string, body CreateOpsgeniealertsManifestV1OpsgeniePostJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewCreateOpsgeniealertsManifestV1OpsgeniePostRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewCreateOpsgeniealertsManifestV1OpsgeniePostRequestWithBody generates requests for CreateOpsgeniealertsManifestV1OpsgeniePost with any type of body
-func NewCreateOpsgeniealertsManifestV1OpsgeniePostRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/v1/opsgenie")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
 // NewResetGithubOrganizationV1ResetGithubOrganizationDeleteRequest calls the generic ResetGithubOrganizationV1ResetGithubOrganizationDelete builder with application/json body
 func NewResetGithubOrganizationV1ResetGithubOrganizationDeleteRequest(server string, body ResetGithubOrganizationV1ResetGithubOrganizationDeleteJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -1341,11 +1263,6 @@ type ClientWithResponsesInterface interface {
 
 	NukeCaptainDomainDataV1NukeCaptainDomainDataDeleteWithResponse(ctx context.Context, body NukeCaptainDomainDataV1NukeCaptainDomainDataDeleteJSONRequestBody, reqEditors ...RequestEditorFn) (*NukeCaptainDomainDataV1NukeCaptainDomainDataDeleteResponse, error)
 
-	// CreateOpsgeniealertsManifestV1OpsgeniePostWithBodyWithResponse request with any body
-	CreateOpsgeniealertsManifestV1OpsgeniePostWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateOpsgeniealertsManifestV1OpsgeniePostResponse, error)
-
-	CreateOpsgeniealertsManifestV1OpsgeniePostWithResponse(ctx context.Context, body CreateOpsgeniealertsManifestV1OpsgeniePostJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateOpsgeniealertsManifestV1OpsgeniePostResponse, error)
-
 	// ResetGithubOrganizationV1ResetGithubOrganizationDeleteWithBodyWithResponse request with any body
 	ResetGithubOrganizationV1ResetGithubOrganizationDeleteWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResetGithubOrganizationV1ResetGithubOrganizationDeleteResponse, error)
 
@@ -1561,28 +1478,6 @@ func (r NukeCaptainDomainDataV1NukeCaptainDomainDataDeleteResponse) Status() str
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r NukeCaptainDomainDataV1NukeCaptainDomainDataDeleteResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type CreateOpsgeniealertsManifestV1OpsgeniePostResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON422      *HTTPValidationError
-}
-
-// Status returns HTTPResponse.Status
-func (r CreateOpsgeniealertsManifestV1OpsgeniePostResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreateOpsgeniealertsManifestV1OpsgeniePostResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1829,23 +1724,6 @@ func (c *ClientWithResponses) NukeCaptainDomainDataV1NukeCaptainDomainDataDelete
 		return nil, err
 	}
 	return ParseNukeCaptainDomainDataV1NukeCaptainDomainDataDeleteResponse(rsp)
-}
-
-// CreateOpsgeniealertsManifestV1OpsgeniePostWithBodyWithResponse request with arbitrary body returning *CreateOpsgeniealertsManifestV1OpsgeniePostResponse
-func (c *ClientWithResponses) CreateOpsgeniealertsManifestV1OpsgeniePostWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateOpsgeniealertsManifestV1OpsgeniePostResponse, error) {
-	rsp, err := c.CreateOpsgeniealertsManifestV1OpsgeniePostWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateOpsgeniealertsManifestV1OpsgeniePostResponse(rsp)
-}
-
-func (c *ClientWithResponses) CreateOpsgeniealertsManifestV1OpsgeniePostWithResponse(ctx context.Context, body CreateOpsgeniealertsManifestV1OpsgeniePostJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateOpsgeniealertsManifestV1OpsgeniePostResponse, error) {
-	rsp, err := c.CreateOpsgeniealertsManifestV1OpsgeniePost(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateOpsgeniealertsManifestV1OpsgeniePostResponse(rsp)
 }
 
 // ResetGithubOrganizationV1ResetGithubOrganizationDeleteWithBodyWithResponse request with arbitrary body returning *ResetGithubOrganizationV1ResetGithubOrganizationDeleteResponse
@@ -2158,32 +2036,6 @@ func ParseNukeCaptainDomainDataV1NukeCaptainDomainDataDeleteResponse(rsp *http.R
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
-		var dest HTTPValidationError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON422 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseCreateOpsgeniealertsManifestV1OpsgeniePostResponse parses an HTTP response from a CreateOpsgeniealertsManifestV1OpsgeniePostWithResponse call
-func ParseCreateOpsgeniealertsManifestV1OpsgeniePostResponse(rsp *http.Response) (*CreateOpsgeniealertsManifestV1OpsgeniePostResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CreateOpsgeniealertsManifestV1OpsgeniePostResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
 		var dest HTTPValidationError
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
