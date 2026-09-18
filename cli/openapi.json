@@ -8,9 +8,6 @@
   "paths": {
     "/v1/storage-buckets": {
       "post": {
-        "tags": [
-          "Storage & Backups"
-        ],
         "summary": "Recreate monitoring storage buckets (destructive)",
         "description": "Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).\n\nNote: this can be a DESTRUCTIVE operation.\nFor the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.",
         "operationId": "hello_v1_storage_buckets_post",
@@ -50,9 +47,6 @@
     },
     "/v1/setup-aws-account-credentials": {
       "post": {
-        "tags": [
-          "AWS"
-        ],
         "summary": "Get admin credentials for an AWS sub-account",
         "description": "If you are testing in AWS/EKS you will need an AWS account to test with. This request will provide you with admin level credentials to the sub account you specify.\nThis can also be used to just get Admin access to a desired sub account.",
         "operationId": "create_credentials_for_aws_captain_account_v1_setup_aws_account_credentials_post",
@@ -92,9 +86,6 @@
     },
     "/v1/nuke-aws-captain-account": {
       "delete": {
-        "tags": [
-          "AWS"
-        ],
         "summary": "Nuke an AWS sub-account (destructive)",
         "description": "Run this after you are done testing within AWS. This will clean up orphaned resources.\n\nSubmit the AWS account name you want to nuke (e.g. glueops-captain-foobar).\n\nNote: you may have to run this 2x.",
         "operationId": "nuke_aws_captain_account_v1_nuke_aws_captain_account_delete",
@@ -132,9 +123,6 @@
     },
     "/v1/nuke-captain-domain-data": {
       "delete": {
-        "tags": [
-          "Storage & Backups"
-        ],
         "summary": "Delete all backups/data for a captain domain (destructive)",
         "description": "Deletes all backups/data for a provided captain_domain. Running this before a cluster creation\nhelps ensure a clean environment.\n\nSubmit the captain_domain/tenant you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will delete all backups and data for the provided captain_domain.\n\nThis will remove things like the vault and cert-manager backups.\n\nNote: this may not delete things like Loki/Thanos/Tempo data as that may be managed outside of AWS.",
         "operationId": "nuke_captain_domain_data_v1_nuke_captain_domain_data_delete",
@@ -172,9 +160,6 @@
     },
     "/v1/reset-github-organization": {
       "delete": {
-        "tags": [
-          "GitHub"
-        ],
         "summary": "Reset a tenant GitHub organization (destructive)",
         "description": "Resets the GitHub Organization to make it easier to get a new dev cluster running for Dev.\n\nSubmit the dev captain_domain you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will reset the GitHub organization so that you can easily get up and running with a new dev cluster.\n\nThis will reset your deployment-configurations repository, it'll bring over a working regcred, and application repos with working github actions so that you can quickly work on the GlueOps stack.\n\nWARNING: By default delete_all_existing_repos = True. Please set it to False or make a manual backup if you are concerned about any data loss within your tenant org (e.g. github.com/development-tenant-*)",
         "operationId": "reset_github_organization_v1_reset_github_organization_delete",
@@ -212,9 +197,6 @@
     },
     "/v1/github/workflow-run-status": {
       "post": {
-        "tags": [
-          "GitHub"
-        ],
         "summary": "Get the status of a GitHub Actions workflow run",
         "description": "Provide a GitHub Actions run URL (e.g. https://github.com/owner/repo/actions/runs/12345678) and get the current status of that workflow run.\nWorks for any repo the configured GITHUB_TOKEN has read access to.",
         "operationId": "get_workflow_run_status_v1_github_workflow_run_status_post",
@@ -252,9 +234,6 @@
     },
     "/v1/k3d-lb-nodes": {
       "post": {
-        "tags": [
-          "Load Balancers"
-        ],
         "summary": "Create k3d-lb nodes on Proxmox (destructive)",
         "description": "Creates Chisel nodes on Proxmox (via Waggle placement) for dev/k3d clusters. This allows us to\nmimic a Cloud Controller for Loadbalancers (e.g. NLBs with EKS).\n\nIf you are testing within k3ds you will need chisel to provide you with load balancers.\nFor a provided captain_domain this will delete any existing k3d-lb nodes and provision new ones.\nPlacement is decided by Waggle (pool per captain_domain); the VMs are then created on the assigned\nProxmox hypervisors and their IPs are read back through the QEMU guest agent.\nNote: this will generally result in new IPs being provisioned.",
         "operationId": "create_k3d_lb_nodes_v1_k3d_lb_nodes_post",
@@ -292,9 +271,6 @@
         }
       },
       "delete": {
-        "tags": [
-          "Load Balancers"
-        ],
         "summary": "Delete k3d-lb nodes on Proxmox (destructive)",
         "description": "Deletes your k3d-lb nodes. Please run this when you are done with development to free up capacity.\n\nWhen you are done testing with k3ds this will delete your k3d-lb nodes (Proxmox VMs + Waggle pool) and free up capacity.",
         "operationId": "delete_k3d_lb_nodes_v1_k3d_lb_nodes_delete",
@@ -332,9 +308,6 @@
     },
     "/v1/incidentio": {
       "post": {
-        "tags": [
-          "Alerting"
-        ],
         "summary": "Generate incident.io alerts manifest",
         "description": "Create an incident.io/alertmanager configuration. Do this for any clusters you want alerts on.",
         "operationId": "create_incidentioalerts_manifest_v1_incidentio_post",
@@ -374,9 +347,6 @@
     },
     "/v1/kube-apiserver": {
       "post": {
-        "tags": [
-          "Manifests"
-        ],
         "summary": "Generate kube-apiserver exposure manifest",
         "description": "Expose the cluster kube-apiserver via Traefik (TLS passthrough + IP allowlist).\n\nGenerate the Namespace + Traefik MiddlewareTCP + IngressRouteTCP manifest that\nexposes the cluster's Kubernetes API server at kube-api.<captain_domain>,\nrestricted to the provided IP allowlist, with TLS passthrough.\n\nCluster prerequisite: the IngressRouteTCP references the kubernetes Service in the\ndefault namespace from glueops-core-kube-api, so the platform Traefik must have\nproviders.kubernetesCRD.allowCrossNamespace=true or the route is silently dropped.",
         "operationId": "create_kube_apiserver_manifest_v1_kube_apiserver_post",
@@ -416,9 +386,6 @@
     },
     "/v1/kube-rbac": {
       "post": {
-        "tags": [
-          "Manifests"
-        ],
         "summary": "Generate developer-debug RBAC manifest",
         "description": "Developer-debug RBAC (reader/reader-plus/debugger/operator) for a tenant's namespace.\n\nGenerate the ClusterRoles + namespace-scoped RoleBindings that let a tenant's developers\ndebug their workloads (Lens/k9s) in their <environment> namespace via the kube-apiserver\nexposed by /v1/kube-apiserver. The namespace is the first label of captain_domain and the\nRoleBinding subjects are oidc:<tenant_github_organization_name>:<captain_domain>-kubectl-<role>.\nAlso includes the hardcoded glueops-super-admins -> cluster-admin ClusterRoleBinding.",
         "operationId": "create_kube_rbac_manifest_v1_kube_rbac_post",
@@ -458,9 +425,6 @@
     },
     "/v1/captain-manifests": {
       "post": {
-        "tags": [
-          "Manifests"
-        ],
         "summary": "Generate captain manifests",
         "description": "Generate YAML manifests for captain deployments based on the provided configuration.",
         "operationId": "create_captain_manifests_v1_captain_manifests_post",
@@ -793,31 +757,5 @@
         "title": "ValidationError"
       }
     }
-  },
-  "tags": [
-    {
-      "name": "AWS",
-      "description": "Admin credentials for captain sub-accounts, and cleanup when testing is done."
-    },
-    {
-      "name": "Storage & Backups",
-      "description": "MinIO/S3 buckets for the Otel monitoring stack, plus backup and data cleanup."
-    },
-    {
-      "name": "GitHub",
-      "description": "Tenant organization resets and GitHub Actions workflow status."
-    },
-    {
-      "name": "Load Balancers",
-      "description": "Chisel exit nodes that mimic a cloud controller for load balancers in k3d clusters. `/v1/k3d-lb-nodes` provisions them on Proxmox, with placement decided by Waggle."
-    },
-    {
-      "name": "Manifests",
-      "description": "Generate Kubernetes/ArgoCD YAML for captain clusters. Output is plain text \u2014 nothing is applied."
-    },
-    {
-      "name": "Alerting",
-      "description": "Alertmanager configuration manifests for incident.io."
-    }
-  ]
+  }
 }
