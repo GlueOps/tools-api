@@ -334,9 +334,9 @@ async def create_nodes(request) -> str:
             # Return as soon as every VM's IP is known: the guest agent comes up
             # during cloud-init's package phase, well before the docker install
             # finishes, and the chisel operator retries until the server is
-            # reachable — same semantics as the Hetzner endpoint, which returns
-            # before its VMs have even booted. get_vm_ipv4 polls through
-            # agent-not-yet-running errors, so it alone gates on agent + DHCP.
+            # reachable, so waiting for a fully booted VM buys nothing.
+            # get_vm_ipv4 polls through agent-not-yet-running errors, so it
+            # alone gates on agent + DHCP.
             results = await asyncio.gather(
                 *(px.get_vm_ipv4(vm["node"], vm["vmid"], timeout=300) for vm in vms),
                 return_exceptions=True,
