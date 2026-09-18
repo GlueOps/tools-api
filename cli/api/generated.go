@@ -38,19 +38,6 @@ type CaptainManifestsRequest struct {
 	TenantGithubOrganizationName                 string `json:"tenant_github_organization_name"`
 }
 
-// ChiselNodesDeleteRequest defines model for ChiselNodesDeleteRequest.
-type ChiselNodesDeleteRequest struct {
-	CaptainDomain string `json:"captain_domain"`
-}
-
-// ChiselNodesRequest defines model for ChiselNodesRequest.
-type ChiselNodesRequest struct {
-	CaptainDomain string `json:"captain_domain"`
-
-	// NodeCount Number of exit nodes to create (1-6, default: 3)
-	NodeCount *int `json:"node_count,omitempty"`
-}
-
 // GitHubWorkflowRunStatusRequest defines model for GitHubWorkflowRunStatusRequest.
 type GitHubWorkflowRunStatusRequest struct {
 	RunUrl string `json:"run_url"`
@@ -154,12 +141,6 @@ type VersionResponse struct {
 
 // CreateCaptainManifestsV1CaptainManifestsPostJSONRequestBody defines body for CreateCaptainManifestsV1CaptainManifestsPost for application/json ContentType.
 type CreateCaptainManifestsV1CaptainManifestsPostJSONRequestBody = CaptainManifestsRequest
-
-// DeleteChiselNodesV1ChiselDeleteJSONRequestBody defines body for DeleteChiselNodesV1ChiselDelete for application/json ContentType.
-type DeleteChiselNodesV1ChiselDeleteJSONRequestBody = ChiselNodesDeleteRequest
-
-// CreateChiselNodesV1ChiselPostJSONRequestBody defines body for CreateChiselNodesV1ChiselPost for application/json ContentType.
-type CreateChiselNodesV1ChiselPostJSONRequestBody = ChiselNodesRequest
 
 // GetWorkflowRunStatusV1GithubWorkflowRunStatusPostJSONRequestBody defines body for GetWorkflowRunStatusV1GithubWorkflowRunStatusPost for application/json ContentType.
 type GetWorkflowRunStatusV1GithubWorkflowRunStatusPostJSONRequestBody = GitHubWorkflowRunStatusRequest
@@ -337,16 +318,6 @@ type ClientInterface interface {
 
 	CreateCaptainManifestsV1CaptainManifestsPost(ctx context.Context, body CreateCaptainManifestsV1CaptainManifestsPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteChiselNodesV1ChiselDeleteWithBody request with any body
-	DeleteChiselNodesV1ChiselDeleteWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	DeleteChiselNodesV1ChiselDelete(ctx context.Context, body DeleteChiselNodesV1ChiselDeleteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreateChiselNodesV1ChiselPostWithBody request with any body
-	CreateChiselNodesV1ChiselPostWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	CreateChiselNodesV1ChiselPost(ctx context.Context, body CreateChiselNodesV1ChiselPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// GetWorkflowRunStatusV1GithubWorkflowRunStatusPostWithBody request with any body
 	GetWorkflowRunStatusV1GithubWorkflowRunStatusPostWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -425,54 +396,6 @@ func (c *Client) CreateCaptainManifestsV1CaptainManifestsPostWithBody(ctx contex
 
 func (c *Client) CreateCaptainManifestsV1CaptainManifestsPost(ctx context.Context, body CreateCaptainManifestsV1CaptainManifestsPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateCaptainManifestsV1CaptainManifestsPostRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) DeleteChiselNodesV1ChiselDeleteWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteChiselNodesV1ChiselDeleteRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) DeleteChiselNodesV1ChiselDelete(ctx context.Context, body DeleteChiselNodesV1ChiselDeleteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteChiselNodesV1ChiselDeleteRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateChiselNodesV1ChiselPostWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateChiselNodesV1ChiselPostRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateChiselNodesV1ChiselPost(ctx context.Context, body CreateChiselNodesV1ChiselPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateChiselNodesV1ChiselPostRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -804,86 +727,6 @@ func NewCreateCaptainManifestsV1CaptainManifestsPostRequestWithBody(server strin
 	}
 
 	operationPath := fmt.Sprintf("/v1/captain-manifests")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDeleteChiselNodesV1ChiselDeleteRequest calls the generic DeleteChiselNodesV1ChiselDelete builder with application/json body
-func NewDeleteChiselNodesV1ChiselDeleteRequest(server string, body DeleteChiselNodesV1ChiselDeleteJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewDeleteChiselNodesV1ChiselDeleteRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewDeleteChiselNodesV1ChiselDeleteRequestWithBody generates requests for DeleteChiselNodesV1ChiselDelete with any type of body
-func NewDeleteChiselNodesV1ChiselDeleteRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/v1/chisel")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewCreateChiselNodesV1ChiselPostRequest calls the generic CreateChiselNodesV1ChiselPost builder with application/json body
-func NewCreateChiselNodesV1ChiselPostRequest(server string, body CreateChiselNodesV1ChiselPostJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewCreateChiselNodesV1ChiselPostRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewCreateChiselNodesV1ChiselPostRequestWithBody generates requests for CreateChiselNodesV1ChiselPost with any type of body
-func NewCreateChiselNodesV1ChiselPostRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/v1/chisel")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1458,16 +1301,6 @@ type ClientWithResponsesInterface interface {
 
 	CreateCaptainManifestsV1CaptainManifestsPostWithResponse(ctx context.Context, body CreateCaptainManifestsV1CaptainManifestsPostJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateCaptainManifestsV1CaptainManifestsPostResponse, error)
 
-	// DeleteChiselNodesV1ChiselDeleteWithBodyWithResponse request with any body
-	DeleteChiselNodesV1ChiselDeleteWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteChiselNodesV1ChiselDeleteResponse, error)
-
-	DeleteChiselNodesV1ChiselDeleteWithResponse(ctx context.Context, body DeleteChiselNodesV1ChiselDeleteJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteChiselNodesV1ChiselDeleteResponse, error)
-
-	// CreateChiselNodesV1ChiselPostWithBodyWithResponse request with any body
-	CreateChiselNodesV1ChiselPostWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateChiselNodesV1ChiselPostResponse, error)
-
-	CreateChiselNodesV1ChiselPostWithResponse(ctx context.Context, body CreateChiselNodesV1ChiselPostJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateChiselNodesV1ChiselPostResponse, error)
-
 	// GetWorkflowRunStatusV1GithubWorkflowRunStatusPostWithBodyWithResponse request with any body
 	GetWorkflowRunStatusV1GithubWorkflowRunStatusPostWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetWorkflowRunStatusV1GithubWorkflowRunStatusPostResponse, error)
 
@@ -1548,51 +1381,6 @@ func (r CreateCaptainManifestsV1CaptainManifestsPostResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateCaptainManifestsV1CaptainManifestsPostResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type DeleteChiselNodesV1ChiselDeleteResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *interface{}
-	JSON422      *HTTPValidationError
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteChiselNodesV1ChiselDeleteResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteChiselNodesV1ChiselDeleteResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type CreateChiselNodesV1ChiselPostResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON422      *HTTPValidationError
-}
-
-// Status returns HTTPResponse.Status
-func (r CreateChiselNodesV1ChiselPostResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreateChiselNodesV1ChiselPostResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1907,40 +1695,6 @@ func (c *ClientWithResponses) CreateCaptainManifestsV1CaptainManifestsPostWithRe
 	return ParseCreateCaptainManifestsV1CaptainManifestsPostResponse(rsp)
 }
 
-// DeleteChiselNodesV1ChiselDeleteWithBodyWithResponse request with arbitrary body returning *DeleteChiselNodesV1ChiselDeleteResponse
-func (c *ClientWithResponses) DeleteChiselNodesV1ChiselDeleteWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DeleteChiselNodesV1ChiselDeleteResponse, error) {
-	rsp, err := c.DeleteChiselNodesV1ChiselDeleteWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteChiselNodesV1ChiselDeleteResponse(rsp)
-}
-
-func (c *ClientWithResponses) DeleteChiselNodesV1ChiselDeleteWithResponse(ctx context.Context, body DeleteChiselNodesV1ChiselDeleteJSONRequestBody, reqEditors ...RequestEditorFn) (*DeleteChiselNodesV1ChiselDeleteResponse, error) {
-	rsp, err := c.DeleteChiselNodesV1ChiselDelete(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteChiselNodesV1ChiselDeleteResponse(rsp)
-}
-
-// CreateChiselNodesV1ChiselPostWithBodyWithResponse request with arbitrary body returning *CreateChiselNodesV1ChiselPostResponse
-func (c *ClientWithResponses) CreateChiselNodesV1ChiselPostWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateChiselNodesV1ChiselPostResponse, error) {
-	rsp, err := c.CreateChiselNodesV1ChiselPostWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateChiselNodesV1ChiselPostResponse(rsp)
-}
-
-func (c *ClientWithResponses) CreateChiselNodesV1ChiselPostWithResponse(ctx context.Context, body CreateChiselNodesV1ChiselPostJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateChiselNodesV1ChiselPostResponse, error) {
-	rsp, err := c.CreateChiselNodesV1ChiselPost(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateChiselNodesV1ChiselPostResponse(rsp)
-}
-
 // GetWorkflowRunStatusV1GithubWorkflowRunStatusPostWithBodyWithResponse request with arbitrary body returning *GetWorkflowRunStatusV1GithubWorkflowRunStatusPostResponse
 func (c *ClientWithResponses) GetWorkflowRunStatusV1GithubWorkflowRunStatusPostWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*GetWorkflowRunStatusV1GithubWorkflowRunStatusPostResponse, error) {
 	rsp, err := c.GetWorkflowRunStatusV1GithubWorkflowRunStatusPostWithBody(ctx, contentType, body, reqEditors...)
@@ -2163,65 +1917,6 @@ func ParseCreateCaptainManifestsV1CaptainManifestsPostResponse(rsp *http.Respons
 	}
 
 	response := &CreateCaptainManifestsV1CaptainManifestsPostResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
-		var dest HTTPValidationError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON422 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseDeleteChiselNodesV1ChiselDeleteResponse parses an HTTP response from a DeleteChiselNodesV1ChiselDeleteWithResponse call
-func ParseDeleteChiselNodesV1ChiselDeleteResponse(rsp *http.Response) (*DeleteChiselNodesV1ChiselDeleteResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteChiselNodesV1ChiselDeleteResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest interface{}
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
-		var dest HTTPValidationError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON422 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseCreateChiselNodesV1ChiselPostResponse parses an HTTP response from a CreateChiselNodesV1ChiselPostWithResponse call
-func ParseCreateChiselNodesV1ChiselPostResponse(rsp *http.Response) (*CreateChiselNodesV1ChiselPostResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CreateChiselNodesV1ChiselPostResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

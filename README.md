@@ -29,7 +29,6 @@ The CLI self-updates automatically when the API version changes. See [`cli/`](cl
 ```bash
 AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY
 AWS_GLUEOPS_ROCKS_ORG_SECRET_KEY
-HCLOUD_TOKEN
 GITHUB_TOKEN
 MINIO_S3_ACCESS_KEY_ID
 MINIO_S3_SECRET_KEY

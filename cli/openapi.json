@@ -250,86 +250,6 @@
         }
       }
     },
-    "/v1/chisel": {
-      "post": {
-        "tags": [
-          "Load Balancers"
-        ],
-        "summary": "Create Chisel nodes on Hetzner",
-        "description": "Creates Chisel nodes for dev/k3d clusters. This allows us to mimic a Cloud Controller for\nLoadbalancers (e.g. NLBs with EKS).\n\nIf you are testing within k3ds you will need chisel to provide you with load balancers.\nFor a provided captain_domain this will delete any existing chisel nodes and provision new ones.\nNote: this will generally result in new IPs being provisioned.",
-        "operationId": "create_chisel_nodes_v1_chisel_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChiselNodesRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Load Balancers"
-        ],
-        "summary": "Delete Chisel nodes on Hetzner",
-        "description": "Deletes your chisel nodes. Please run this when you are done with development to save on costs.\n\nWhen you are done testing with k3ds this will delete your chisel nodes and save on costs.",
-        "operationId": "delete_chisel_nodes_v1_chisel_delete",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChiselNodesDeleteRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/k3d-lb-nodes": {
       "post": {
         "tags": [
@@ -712,43 +632,6 @@
         ],
         "title": "CaptainManifestsRequest"
       },
-      "ChiselNodesDeleteRequest": {
-        "properties": {
-          "captain_domain": {
-            "type": "string",
-            "title": "Captain Domain",
-            "example": "nonprod.foobar.onglueops.rocks"
-          }
-        },
-        "type": "object",
-        "required": [
-          "captain_domain"
-        ],
-        "title": "ChiselNodesDeleteRequest"
-      },
-      "ChiselNodesRequest": {
-        "properties": {
-          "captain_domain": {
-            "type": "string",
-            "title": "Captain Domain",
-            "example": "nonprod.foobar.onglueops.rocks"
-          },
-          "node_count": {
-            "type": "integer",
-            "maximum": 6.0,
-            "minimum": 1.0,
-            "title": "Node Count",
-            "description": "Number of exit nodes to create (1-6, default: 3)",
-            "default": 3,
-            "example": 3
-          }
-        },
-        "type": "object",
-        "required": [
-          "captain_domain"
-        ],
-        "title": "ChiselNodesRequest"
-      },
       "GitHubWorkflowRunStatusRequest": {
         "properties": {
           "run_url": {
@@ -1047,7 +930,7 @@
     },
     {
       "name": "Load Balancers",
-      "description": "Chisel exit nodes that mimic a cloud controller for load balancers in k3d clusters. `/v1/chisel` provisions on Hetzner; `/v1/k3d-lb-nodes` is the Proxmox equivalent (placement via Waggle)."
+      "description": "Chisel exit nodes that mimic a cloud controller for load balancers in k3d clusters. `/v1/k3d-lb-nodes` provisions them on Proxmox, with placement decided by Waggle."
     },
     {
       "name": "Manifests",

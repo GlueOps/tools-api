@@ -65,7 +65,6 @@ cli/
 │   ├── aws.go                      # tools aws setup-credentials, aws nuke-account
 │   ├── nuke.go                     # tools nuke captain-domain-data
 │   ├── github.go                   # tools github reset-org, github workflow-status
-│   ├── chisel.go                   # tools chisel create, chisel delete
 │   ├── k3d_lb.go                   # tools k3d-lb-nodes create, k3d-lb-nodes delete
 │   ├── opsgenie.go                 # tools opsgenie create
 │   └── captain_manifests.go        # tools captain-manifests generate

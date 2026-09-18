@@ -5,8 +5,8 @@ from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, K3dLbNodesRequest, K3dLbNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, IncidentioAlertsManifestRequest, CaptainManifestsRequest, KubeApiserverManifestRequest, KubeRbacManifestRequest, GitHubWorkflowRunStatusRequest, VersionResponse
-from util import storage, aws_setup_test_account_credentials, github, hetzner, k3d_lb, opsgenie, incidentio, captain_manifests, kube_apiserver, kube_rbac
+from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, K3dLbNodesRequest, K3dLbNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, IncidentioAlertsManifestRequest, CaptainManifestsRequest, KubeApiserverManifestRequest, KubeRbacManifestRequest, GitHubWorkflowRunStatusRequest, VersionResponse
+from util import storage, aws_setup_test_account_credentials, github, k3d_lb, opsgenie, incidentio, captain_manifests, kube_apiserver, kube_rbac
 from fastapi.responses import RedirectResponse
 
 
@@ -56,8 +56,7 @@ TAGS_METADATA = [
         "name": "Load Balancers",
         "description": (
             "Chisel exit nodes that mimic a cloud controller for load balancers in k3d clusters. "
-            "`/v1/chisel` provisions on Hetzner; `/v1/k3d-lb-nodes` is the Proxmox equivalent "
-            "(placement via Waggle)."
+            "`/v1/k3d-lb-nodes` provisions them on Proxmox, with placement decided by Waggle."
         ),
     },
     {
@@ -182,35 +181,6 @@ async def get_workflow_run_status(request: GitHubWorkflowRunStatusRequest):
      Works for any repo the configured GITHUB_TOKEN has read access to.
     """
     return github.get_workflow_run_status(request.run_url)
-
-@app.post("/v1/chisel", response_class=PlainTextResponse, tags=["Load Balancers"], summary="Create Chisel nodes on Hetzner")
-async def create_chisel_nodes(request: ChiselNodesRequest):
-    """
-        Creates Chisel nodes for dev/k3d clusters. This allows us to mimic a Cloud Controller for
-        Loadbalancers (e.g. NLBs with EKS).
-
-        If you are testing within k3ds you will need chisel to provide you with load balancers.
-        For a provided captain_domain this will delete any existing chisel nodes and provision new ones.
-        Note: this will generally result in new IPs being provisioned.
-    """
-    logger.info(f"Received POST request to create chisel nodes for captain_domain: {request.captain_domain}")
-    result = hetzner.create_instances(request)
-    logger.info(f"Successfully completed chisel node creation for captain_domain: {request.captain_domain}")
-    return result
-
-
-@app.delete("/v1/chisel", tags=["Load Balancers"], summary="Delete Chisel nodes on Hetzner")
-async def delete_chisel_nodes(request: ChiselNodesDeleteRequest):
-    """
-        Deletes your chisel nodes. Please run this when you are done with development to save on costs.
-
-        When you are done testing with k3ds this will delete your chisel nodes and save on costs.
-    """
-    logger.info(f"Received DELETE request to delete chisel nodes for captain_domain: {request.captain_domain}")
-    response = hetzner.delete_existing_servers(request)
-    logger.info(f"Successfully completed chisel node deletion for captain_domain: {request.captain_domain}")
-    return JSONResponse(status_code=200, content={"message": "Successfully deleted chisel nodes."})
-
 
 @app.post("/v1/k3d-lb-nodes", response_class=PlainTextResponse, tags=["Load Balancers"], summary="Create k3d-lb nodes on Proxmox")
 async def create_k3d_lb_nodes(request: K3dLbNodesRequest):

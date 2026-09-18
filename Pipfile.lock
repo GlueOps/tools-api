@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "6b871a24c488b5bbcc762a0e4854941ca3e8df4fae26200fa48aecf46107be9f"
+            "sha256": "b6654fedc16ba901883fcf31457feba7b15650bf832109ed1be645b6b7ec1e46"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -871,15 +871,6 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==0.16.0"
-        },
-        "hcloud": {
-            "hashes": [
-                "sha256:5a3fa1bbd1f87bfc5f0c726caebe041b9e1119b4361aafabc12fad284a2c445a",
-                "sha256:c12dce3f14404ea342d79236292a15fbc4ceeb7861724a09dd3fe60cef513e0b"
-            ],
-            "index": "pypi",
-            "markers": "python_version >= '3.10'",
-            "version": "==2.23.0"
         },
         "httpcore": {
             "hashes": [
