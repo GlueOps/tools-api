@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Security, HTTPException, Depends, status, requests, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, HTMLResponse
 from fastapi.security import APIKeyHeader
-from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
 from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
@@ -109,16 +109,26 @@ async def root():
     return RedirectResponse(url="/docs")
 
 
-@app.get("/docs", include_in_schema=False)
-async def swagger_ui():
+# Replacing FastAPI's built-in docs route means re-doing what it did for us: prefixing
+# root_path so the page still finds the spec behind a path-prefix proxy, answering HEAD
+# alongside GET, and registering the oauth2-redirect route (setup() only does that when
+# docs_url is set, which it no longer is).
+@app.api_route("/docs", methods=["GET", "HEAD"], include_in_schema=False)
+async def swagger_ui(request: Request):
+    root_path = request.scope.get("root_path", "").rstrip("/")
     html = get_swagger_ui_html(
-        openapi_url=app.openapi_url,
+        openapi_url=root_path + app.openapi_url,
         title=f"{app.title} - Swagger UI",
-        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        oauth2_redirect_url=root_path + app.swagger_ui_oauth2_redirect_url,
         # FastAPI only applies these to its own built-in docs route, which we replaced.
         swagger_ui_parameters=app.swagger_ui_parameters,
     )
     return HTMLResponse(html.body.decode().replace("</head>", SWAGGER_UI_CSS + "</head>"))
+
+
+@app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+async def swagger_ui_redirect():
+    return get_swagger_ui_oauth2_redirect_html()
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
