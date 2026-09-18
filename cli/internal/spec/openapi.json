@@ -295,7 +295,7 @@
         "tags": [
           "Load Balancers"
         ],
-        "summary": "Delete k3d-lb nodes on Proxmox",
+        "summary": "Delete k3d-lb nodes on Proxmox (destructive)",
         "description": "Deletes your k3d-lb nodes. Please run this when you are done with development to free up capacity.\n\nWhen you are done testing with k3ds this will delete your k3d-lb nodes (Proxmox VMs + Waggle pool) and free up capacity.",
         "operationId": "delete_k3d_lb_nodes_v1_k3d_lb_nodes_delete",
         "requestBody": {

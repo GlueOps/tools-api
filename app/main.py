@@ -251,7 +251,7 @@ async def create_k3d_lb_nodes(request: K3dLbNodesRequest):
     return result
 
 
-@app.delete("/v1/k3d-lb-nodes", tags=["Load Balancers"], summary="Delete k3d-lb nodes on Proxmox")
+@app.delete("/v1/k3d-lb-nodes", tags=["Load Balancers"], summary="Delete k3d-lb nodes on Proxmox (destructive)")
 async def delete_k3d_lb_nodes(request: K3dLbNodesDeleteRequest):
     """
         Deletes your k3d-lb nodes. Please run this when you are done with development to free up capacity.
