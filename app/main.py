@@ -15,8 +15,30 @@ from fastapi.responses import RedirectResponse
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 
+# Build metadata, injected as build args by the container image workflow. Read once here so
+# the docs page and the /version endpoint cannot drift apart.
+VERSION = os.getenv("VERSION", "UNKNOWN")
+COMMIT_SHA = os.getenv("COMMIT_SHA", "UNKNOWN")
+SHORT_SHA = os.getenv("SHORT_SHA", "UNKNOWN")
+BUILD_TIMESTAMP = os.getenv("BUILD_TIMESTAMP", "UNKNOWN")
+GIT_REF = os.getenv("GIT_REF", "UNKNOWN")
 
-API_DESCRIPTION = """
+
+def _build_line():
+    """One-line build identity for the top of the docs page.
+
+    Outside a built image (e.g. `fastapi dev`) these are all UNKNOWN, so the commit is
+    rendered as plain text rather than a link that would 404 on GitHub.
+    """
+    commit = (
+        f"[`{SHORT_SHA}`](https://github.com/GlueOps/tools-api/commit/{COMMIT_SHA})"
+        if COMMIT_SHA != "UNKNOWN"
+        else f"`{SHORT_SHA}`"
+    )
+    return f"**`{VERSION}`** · commit {commit} · ref `{GIT_REF}` · built {BUILD_TIMESTAMP}\n"
+
+
+API_DESCRIPTION = _build_line() + """
 Internal APIs for GlueOps platform engineers: stand up dev/test infrastructure,
 generate cluster manifests, and tear it all down when you are done.
 
@@ -68,16 +90,12 @@ TAGS_METADATA = [
         "name": "Alerting",
         "description": "Alertmanager configuration manifests for incident.io.",
     },
-    {
-        "name": "Meta",
-        "description": "Version and build information for this service.",
-    },
 ]
 
 app = FastAPI(
     title="Tools API",
     description=API_DESCRIPTION,
-    version=os.getenv("VERSION", "UNKNOWN"),
+    version=VERSION,
     openapi_tags=TAGS_METADATA,
     # Swagger UI is served by the custom /docs route below so the CSS can be injected.
     docs_url=None,
@@ -296,12 +314,15 @@ async def health():
     return {"status": "healthy"}
 
 
-@app.get("/version", response_model=VersionResponse, tags=["Meta"], summary="Get version and build information")
+# Not in the schema: the build metadata is shown at the top of the docs page instead.
+# The route stays because the CLI self-updater polls it on every command
+# (cli/internal/updater/updater.go).
+@app.get("/version", response_model=VersionResponse, include_in_schema=False)
 async def version():
     return VersionResponse(
-        version=os.getenv("VERSION", "UNKNOWN"),
-        commit_sha=os.getenv("COMMIT_SHA", "UNKNOWN"),
-        short_sha=os.getenv("SHORT_SHA", "UNKNOWN"),
-        build_timestamp=os.getenv("BUILD_TIMESTAMP", "UNKNOWN"),
-        git_ref=os.getenv("GIT_REF", "UNKNOWN"),
+        version=VERSION,
+        commit_sha=COMMIT_SHA,
+        short_sha=SHORT_SHA,
+        build_timestamp=BUILD_TIMESTAMP,
+        git_ref=GIT_REF,
     )

@@ -124,15 +124,6 @@ type ValidationError_Loc_Item struct {
 	union json.RawMessage
 }
 
-// VersionResponse defines model for VersionResponse.
-type VersionResponse struct {
-	BuildTimestamp string `json:"build_timestamp"`
-	CommitSha      string `json:"commit_sha"`
-	GitRef         string `json:"git_ref"`
-	ShortSha       string `json:"short_sha"`
-	Version        string `json:"version"`
-}
-
 // CreateCaptainManifestsV1CaptainManifestsPostJSONRequestBody defines body for CreateCaptainManifestsV1CaptainManifestsPost for application/json ContentType.
 type CreateCaptainManifestsV1CaptainManifestsPostJSONRequestBody = CaptainManifestsRequest
 
@@ -363,9 +354,6 @@ type ClientInterface interface {
 	HelloV1StorageBucketsPostWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	HelloV1StorageBucketsPost(ctx context.Context, body HelloV1StorageBucketsPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// VersionVersionGet request
-	VersionVersionGet(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) CreateCaptainManifestsV1CaptainManifestsPostWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -646,18 +634,6 @@ func (c *Client) HelloV1StorageBucketsPostWithBody(ctx context.Context, contentT
 
 func (c *Client) HelloV1StorageBucketsPost(ctx context.Context, body HelloV1StorageBucketsPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewHelloV1StorageBucketsPostRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) VersionVersionGet(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewVersionVersionGetRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -1148,33 +1124,6 @@ func NewHelloV1StorageBucketsPostRequestWithBody(server string, contentType stri
 	return req, nil
 }
 
-// NewVersionVersionGetRequest generates requests for VersionVersionGet
-func NewVersionVersionGetRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/version")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -1277,9 +1226,6 @@ type ClientWithResponsesInterface interface {
 	HelloV1StorageBucketsPostWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*HelloV1StorageBucketsPostResponse, error)
 
 	HelloV1StorageBucketsPostWithResponse(ctx context.Context, body HelloV1StorageBucketsPostJSONRequestBody, reqEditors ...RequestEditorFn) (*HelloV1StorageBucketsPostResponse, error)
-
-	// VersionVersionGetWithResponse request
-	VersionVersionGetWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*VersionVersionGetResponse, error)
 }
 
 type CreateCaptainManifestsV1CaptainManifestsPostResponse struct {
@@ -1551,28 +1497,6 @@ func (r HelloV1StorageBucketsPostResponse) StatusCode() int {
 	return 0
 }
 
-type VersionVersionGetResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *VersionResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r VersionVersionGetResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r VersionVersionGetResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 // CreateCaptainManifestsV1CaptainManifestsPostWithBodyWithResponse request with arbitrary body returning *CreateCaptainManifestsV1CaptainManifestsPostResponse
 func (c *ClientWithResponses) CreateCaptainManifestsV1CaptainManifestsPostWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateCaptainManifestsV1CaptainManifestsPostResponse, error) {
 	rsp, err := c.CreateCaptainManifestsV1CaptainManifestsPostWithBody(ctx, contentType, body, reqEditors...)
@@ -1775,15 +1699,6 @@ func (c *ClientWithResponses) HelloV1StorageBucketsPostWithResponse(ctx context.
 		return nil, err
 	}
 	return ParseHelloV1StorageBucketsPostResponse(rsp)
-}
-
-// VersionVersionGetWithResponse request returning *VersionVersionGetResponse
-func (c *ClientWithResponses) VersionVersionGetWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*VersionVersionGetResponse, error) {
-	rsp, err := c.VersionVersionGet(ctx, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseVersionVersionGetResponse(rsp)
 }
 
 // ParseCreateCaptainManifestsV1CaptainManifestsPostResponse parses an HTTP response from a CreateCaptainManifestsV1CaptainManifestsPostWithResponse call
@@ -2127,32 +2042,6 @@ func ParseHelloV1StorageBucketsPostResponse(rsp *http.Response) (*HelloV1Storage
 			return nil, err
 		}
 		response.JSON422 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseVersionVersionGetResponse parses an HTTP response from a VersionVersionGetWithResponse call
-func ParseVersionVersionGetResponse(rsp *http.Response) (*VersionVersionGetResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &VersionVersionGetResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest VersionResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
 
 	}
 

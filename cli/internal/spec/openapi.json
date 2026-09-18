@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Tools API",
-    "description": "\nInternal APIs for GlueOps platform engineers: stand up dev/test infrastructure,\ngenerate cluster manifests, and tear it all down when you are done.\n\n### Conventions\n\n* Most endpoints are keyed on a **`captain_domain`** (e.g. `nonprod.foobar.onglueops.rocks`).\n  The first label (`nonprod`) is typically the tenant namespace.\n* Manifest endpoints return **plain-text YAML** that you commit to a deployment-configurations\n  repository \u2014 they do not apply anything to a cluster.\n* Every example value in this page is a real, working example. Click **Try it out** on any\n  endpoint to fire the request straight from here.\n\n### \u26a0\ufe0f Destructive endpoints\n\nOperations marked **(destructive)** delete real infrastructure, repositories, or backups.\nDouble-check the `captain_domain` / account name before running them.\n\n### Other views\n\n[ReDoc](/redoc) \u00b7 [OpenAPI spec](/openapi.json) \u00b7\nthe [`tools` CLI](https://github.com/GlueOps/tools-api) wraps every endpoint below for headless machines.\n",
+    "description": "**`UNKNOWN`** \u00b7 commit `UNKNOWN` \u00b7 ref `UNKNOWN` \u00b7 built UNKNOWN\n\nInternal APIs for GlueOps platform engineers: stand up dev/test infrastructure,\ngenerate cluster manifests, and tear it all down when you are done.\n\n### Conventions\n\n* Most endpoints are keyed on a **`captain_domain`** (e.g. `nonprod.foobar.onglueops.rocks`).\n  The first label (`nonprod`) is typically the tenant namespace.\n* Manifest endpoints return **plain-text YAML** that you commit to a deployment-configurations\n  repository \u2014 they do not apply anything to a cluster.\n* Every example value in this page is a real, working example. Click **Try it out** on any\n  endpoint to fire the request straight from here.\n\n### \u26a0\ufe0f Destructive endpoints\n\nOperations marked **(destructive)** delete real infrastructure, repositories, or backups.\nDouble-check the `captain_domain` / account name before running them.\n\n### Other views\n\n[ReDoc](/redoc) \u00b7 [OpenAPI spec](/openapi.json) \u00b7\nthe [`tools` CLI](https://github.com/GlueOps/tools-api) wraps every endpoint below for headless machines.\n",
     "version": "UNKNOWN"
   },
   "paths": {
@@ -497,27 +497,6 @@
           }
         }
       }
-    },
-    "/version": {
-      "get": {
-        "tags": [
-          "Meta"
-        ],
-        "summary": "Get version and build information",
-        "operationId": "version_version_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VersionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -812,44 +791,6 @@
           "type"
         ],
         "title": "ValidationError"
-      },
-      "VersionResponse": {
-        "properties": {
-          "version": {
-            "type": "string",
-            "title": "Version",
-            "example": "v1.0.0"
-          },
-          "commit_sha": {
-            "type": "string",
-            "title": "Commit Sha",
-            "example": "abc1234567890def1234567890abcdef12345678"
-          },
-          "short_sha": {
-            "type": "string",
-            "title": "Short Sha",
-            "example": "abc1234"
-          },
-          "build_timestamp": {
-            "type": "string",
-            "title": "Build Timestamp",
-            "example": "2026-01-01T00:00:00Z"
-          },
-          "git_ref": {
-            "type": "string",
-            "title": "Git Ref",
-            "example": "main"
-          }
-        },
-        "type": "object",
-        "required": [
-          "version",
-          "commit_sha",
-          "short_sha",
-          "build_timestamp",
-          "git_ref"
-        ],
-        "title": "VersionResponse"
       }
     }
   },
@@ -877,10 +818,6 @@
     {
       "name": "Alerting",
       "description": "Alertmanager configuration manifests for incident.io."
-    },
-    {
-      "name": "Meta",
-      "description": "Version and build information for this service."
     }
   ]
 }
