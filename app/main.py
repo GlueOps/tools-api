@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Security, HTTPException, Depends, status, requests, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, HTMLResponse
 from fastapi.security import APIKeyHeader
+from fastapi.openapi.docs import get_swagger_ui_html
 from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
@@ -78,6 +79,8 @@ app = FastAPI(
     description=API_DESCRIPTION,
     version=os.getenv("VERSION", "UNKNOWN"),
     openapi_tags=TAGS_METADATA,
+    # Swagger UI is served by the custom /docs route below so the CSS can be injected.
+    docs_url=None,
     swagger_ui_parameters={
         # Hide the bottom "Schemas" dump; models are shown inline per endpoint.
         "defaultModelsExpandDepth": -1,
@@ -92,9 +95,33 @@ app = FastAPI(
     },
 )
 
+# Every operation's documented responses are FastAPI boilerplate: an identical 422
+# HTTPValidationError, and a 200 whose schema is a bare string or an empty object. Hiding
+# the block keeps the useful half of each operation (parameters, examples) on screen. The
+# live "Server response" from Try it out lives in the same wrapper, so it is left visible.
+SWAGGER_UI_CSS = """
+<style>
+  .swagger-ui .responses-wrapper > .opblock-section-header { display: none; }
+  .swagger-ui table.responses-table:not(.live-responses-table) { display: none; }
+</style>
+"""
+
+
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse(url="/docs")
+
+
+@app.get("/docs", include_in_schema=False)
+async def swagger_ui():
+    html = get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=f"{app.title} - Swagger UI",
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        # FastAPI only applies these to its own built-in docs route, which we replaced.
+        swagger_ui_parameters=app.swagger_ui_parameters,
+    )
+    return HTMLResponse(html.body.decode().replace("</head>", SWAGGER_UI_CSS + "</head>"))
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
