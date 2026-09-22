@@ -1,4 +1,4 @@
-GO_IMAGE := golang:1.26-alpine@sha256:51a7c389a5ddaf82f527191a1e9bff9928655130a44e4975dd1d7e0acf59f1ae
+GO_IMAGE := golang:1.24-alpine@sha256:8bee1901f1e530bfb4a7850aa7a479d17ae3a18beb6e09064ed54cfd245b7191
 TOOLS_API_IMAGE := tools-api-spec
 MODULE := github.com/GlueOps/tools-api/cli
 VERSION ?= dev
@@ -23,7 +23,7 @@ generate:
 		"import sys; sys.path.insert(0, 'app'); from main import app; import json; print(json.dumps(app.openapi(), indent=2))" \
 		> openapi.json
 	docker run --rm -v "$$(pwd):/app" -w /app $(GO_IMAGE) sh -c \
-		"go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.8.0 && oapi-codegen -config oapi-codegen.yaml openapi.json"
+		"go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.6.0 && oapi-codegen -config oapi-codegen.yaml openapi.json"
 	cp openapi.json internal/spec/openapi.json
 
 # Build for current platform

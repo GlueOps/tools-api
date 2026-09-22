@@ -2,14 +2,14 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Tools API",
-    "description": "**`UNKNOWN`** \u00b7 commit `UNKNOWN` \u00b7 ref `UNKNOWN` \u00b7 built UNKNOWN\n\nInternal APIs for GlueOps platform engineers: stand up dev/test infrastructure,\ngenerate cluster manifests, and tear it all down when you are done.\n\n### Conventions\n\n* Most endpoints are keyed on a **`captain_domain`** (e.g. `nonprod.foobar.onglueops.rocks`).\n  The first label (`nonprod`) is typically the tenant namespace.\n* Manifest endpoints return **plain-text YAML** that you commit to a deployment-configurations\n  repository \u2014 they do not apply anything to a cluster.\n* Every example value in this page is a real, working example. Click **Try it out** on any\n  endpoint to fire the request straight from here.\n\n### \u26a0\ufe0f Destructive endpoints\n\nOperations marked **(destructive)** delete real infrastructure, repositories, or backups.\nDouble-check the `captain_domain` / account name before running them.\n\n### Other views\n\n[ReDoc](/redoc) \u00b7 [OpenAPI spec](/openapi.json) \u00b7\nthe [`tools` CLI](https://github.com/GlueOps/tools-api) wraps every endpoint below for headless machines.\n",
+    "description": "Various APIs to help you speed up your development and testing.",
     "version": "UNKNOWN"
   },
   "paths": {
     "/v1/storage-buckets": {
       "post": {
-        "summary": "Recreate monitoring storage buckets (destructive)",
-        "description": "Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).\n\nNote: this can be a DESTRUCTIVE operation.\nFor the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.",
+        "summary": "Create/Re-create storage buckets that can be used for V2 of our monitoring stack that is Otel based",
+        "description": "Note: this can be a DESTRUCTIVE operation\nFor the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.",
         "operationId": "hello_v1_storage_buckets_post",
         "requestBody": {
           "content": {
@@ -47,7 +47,7 @@
     },
     "/v1/setup-aws-account-credentials": {
       "post": {
-        "summary": "Get admin credentials for an AWS sub-account",
+        "summary": "Whether it's to create an EKS cluster or to test other things out in an isolated AWS account. These creds will give you Admin level access to the requested account.",
         "description": "If you are testing in AWS/EKS you will need an AWS account to test with. This request will provide you with admin level credentials to the sub account you specify.\nThis can also be used to just get Admin access to a desired sub account.",
         "operationId": "create_credentials_for_aws_captain_account_v1_setup_aws_account_credentials_post",
         "requestBody": {
@@ -86,8 +86,8 @@
     },
     "/v1/nuke-aws-captain-account": {
       "delete": {
-        "summary": "Nuke an AWS sub-account (destructive)",
-        "description": "Run this after you are done testing within AWS. This will clean up orphaned resources.\n\nSubmit the AWS account name you want to nuke (e.g. glueops-captain-foobar).\n\nNote: you may have to run this 2x.",
+        "summary": "Run this after you are done testing within AWS. This will clean up orphaned resources. Note: you may have to run this 2x.",
+        "description": "Submit the AWS account name you want to nuke (e.g. glueops-captain-foobar)",
         "operationId": "nuke_aws_captain_account_v1_nuke_aws_captain_account_delete",
         "requestBody": {
           "content": {
@@ -123,8 +123,8 @@
     },
     "/v1/nuke-captain-domain-data": {
       "delete": {
-        "summary": "Delete all backups/data for a captain domain (destructive)",
-        "description": "Deletes all backups/data for a provided captain_domain. Running this before a cluster creation\nhelps ensure a clean environment.\n\nSubmit the captain_domain/tenant you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will delete all backups and data for the provided captain_domain.\n\nThis will remove things like the vault and cert-manager backups.\n\nNote: this may not delete things like Loki/Thanos/Tempo data as that may be managed outside of AWS.",
+        "summary": "Deletes all backups/data for a provided captain_domain. Running this before a cluster creation helps ensure a clean environment.",
+        "description": "Submit the captain_domain/tenant you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will delete all backups and data for the provided captain_domain.\n\nThis will remove things like the vault and cert-manager backups.\n\nNote: this may not delete things like Loki/Thanos/Tempo data as that may be managed outside of AWS.",
         "operationId": "nuke_captain_domain_data_v1_nuke_captain_domain_data_delete",
         "requestBody": {
           "content": {
@@ -160,8 +160,8 @@
     },
     "/v1/reset-github-organization": {
       "delete": {
-        "summary": "Reset a tenant GitHub organization (destructive)",
-        "description": "Resets the GitHub Organization to make it easier to get a new dev cluster running for Dev.\n\nSubmit the dev captain_domain you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will reset the GitHub organization so that you can easily get up and running with a new dev cluster.\n\nThis will reset your deployment-configurations repository, it'll bring over a working regcred, and application repos with working github actions so that you can quickly work on the GlueOps stack.\n\nWARNING: By default delete_all_existing_repos = True. Please set it to False or make a manual backup if you are concerned about any data loss within your tenant org (e.g. github.com/development-tenant-*)",
+        "summary": "Resets the GitHub Organization to make it easier to get a new dev cluster runner for Dev",
+        "description": "Submit the dev captain_domain you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will reset the GitHub organization so that you can easily get up and running with a new dev cluster.\n\nThis will reset your deployment-configurations repository, it'll bring over a working regcred, and application repos with working github actions so that you can quickly work on the GlueOps stack.\n\nWARNING: By default delete_all_existing_repos = True. Please set it to False or make a manual backup if you are concerned about any data loss within your tenant org (e.g. github.com/development-tenant-*)",
         "operationId": "reset_github_organization_v1_reset_github_organization_delete",
         "requestBody": {
           "content": {
@@ -232,16 +232,16 @@
         }
       }
     },
-    "/v1/k3d-lb-nodes": {
+    "/v1/chisel": {
       "post": {
-        "summary": "Recreate k3d-lb nodes on Proxmox (destructive)",
-        "description": "Creates Chisel nodes on Proxmox (via Waggle placement) for dev/k3d clusters. This allows us to\nmimic a Cloud Controller for Loadbalancers (e.g. NLBs with EKS).\n\nIf you are testing within k3ds you will need chisel to provide you with load balancers.\nFor a provided captain_domain this will delete any existing k3d-lb nodes and provision new ones.\nPlacement is decided by Waggle (pool per captain_domain); the VMs are then created on the assigned\nProxmox hypervisors and their IPs are read back through the QEMU guest agent.\nNote: this will generally result in new IPs being provisioned.",
-        "operationId": "create_k3d_lb_nodes_v1_k3d_lb_nodes_post",
+        "summary": "Creates Chisel nodes for dev/k3d clusters. This allows us to mimic a Cloud Controller for Loadbalancers (e.g. NLBs with EKS)",
+        "description": "If you are testing within k3ds you will need chisel to provide you with load balancers.\nFor a provided captain_domain this will delete any existing chisel nodes and provision new ones.\nNote: this will generally result in new IPs being provisioned.",
+        "operationId": "create_chisel_nodes_v1_chisel_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/K3dLbNodesRequest"
+                "$ref": "#/components/schemas/ChiselNodesRequest"
               }
             }
           },
@@ -271,14 +271,14 @@
         }
       },
       "delete": {
-        "summary": "Delete k3d-lb nodes on Proxmox (destructive)",
-        "description": "Deletes your k3d-lb nodes. Please run this when you are done with development to free up capacity.\n\nWhen you are done testing with k3ds this will delete your k3d-lb nodes (Proxmox VMs + Waggle pool) and free up capacity.",
-        "operationId": "delete_k3d_lb_nodes_v1_k3d_lb_nodes_delete",
+        "summary": "Deletes your chisel nodes. Please run this when you are done with development to save on costs.",
+        "description": "When you are done testing with k3ds this will delete your chisel nodes and save on costs.",
+        "operationId": "delete_chisel_nodes_v1_chisel_delete",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/K3dLbNodesDeleteRequest"
+                "$ref": "#/components/schemas/ChiselNodesDeleteRequest"
               }
             }
           },
@@ -306,94 +306,16 @@
         }
       }
     },
-    "/v1/incidentio": {
+    "/v1/opsgenie": {
       "post": {
-        "summary": "Generate incident.io alerts manifest",
-        "description": "Create an incident.io/alertmanager configuration. Do this for any clusters you want alerts on.",
-        "operationId": "create_incidentioalerts_manifest_v1_incidentio_post",
+        "summary": "Creates Opsgenie Alerts Manifest",
+        "description": "Create a opsgenie/alertmanager configuration. Do this for any clusters you want alerts on.",
+        "operationId": "create_opsgeniealerts_manifest_v1_opsgenie_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/IncidentioAlertsManifestRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/kube-apiserver": {
-      "post": {
-        "summary": "Generate kube-apiserver exposure manifest",
-        "description": "Expose the cluster kube-apiserver via Traefik (TLS passthrough + IP allowlist).\n\nGenerate the Namespace + Traefik MiddlewareTCP + IngressRouteTCP manifest that\nexposes the cluster's Kubernetes API server at kube-api.<captain_domain>,\nrestricted to the provided IP allowlist, with TLS passthrough.\n\nCluster prerequisite: the IngressRouteTCP references the kubernetes Service in the\ndefault namespace from glueops-core-kube-api, so the platform Traefik must have\nproviders.kubernetesCRD.allowCrossNamespace=true or the route is silently dropped.",
-        "operationId": "create_kube_apiserver_manifest_v1_kube_apiserver_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/KubeApiserverManifestRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/kube-rbac": {
-      "post": {
-        "summary": "Generate developer-debug RBAC manifest",
-        "description": "Developer-debug RBAC (reader/reader-plus/debugger/operator) for a tenant's namespace.\n\nGenerate the ClusterRoles + namespace-scoped RoleBindings that let a tenant's developers\ndebug their workloads (Lens/k9s) in their <environment> namespace via the kube-apiserver\nexposed by /v1/kube-apiserver. The namespace is the first label of captain_domain and the\nRoleBinding subjects are oidc:<tenant_github_organization_name>:<captain_domain>-kubectl-<role>.\nAlso includes the hardcoded glueops-super-admins -> cluster-admin ClusterRoleBinding.",
-        "operationId": "create_kube_rbac_manifest_v1_kube_rbac_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/KubeRbacManifestRequest"
+                "$ref": "#/components/schemas/OpsgenieAlertsManifestRequest"
               }
             }
           },
@@ -455,6 +377,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/version": {
+      "get": {
+        "summary": "Contains version information about this tools-api",
+        "operationId": "version_version_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
                 }
               }
             }
@@ -533,6 +473,43 @@
         ],
         "title": "CaptainManifestsRequest"
       },
+      "ChiselNodesDeleteRequest": {
+        "properties": {
+          "captain_domain": {
+            "type": "string",
+            "title": "Captain Domain",
+            "example": "nonprod.foobar.onglueops.rocks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "captain_domain"
+        ],
+        "title": "ChiselNodesDeleteRequest"
+      },
+      "ChiselNodesRequest": {
+        "properties": {
+          "captain_domain": {
+            "type": "string",
+            "title": "Captain Domain",
+            "example": "nonprod.foobar.onglueops.rocks"
+          },
+          "node_count": {
+            "type": "integer",
+            "maximum": 6.0,
+            "minimum": 1.0,
+            "title": "Node Count",
+            "description": "Number of exit nodes to create (1-6, default: 3)",
+            "default": 3,
+            "example": 3
+          }
+        },
+        "type": "object",
+        "required": [
+          "captain_domain"
+        ],
+        "title": "ChiselNodesRequest"
+      },
       "GitHubWorkflowRunStatusRequest": {
         "properties": {
           "run_url": {
@@ -560,115 +537,25 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
-      "IncidentioAlertsManifestRequest": {
-        "properties": {
-          "incidentio_alertmanager_url": {
-            "type": "string",
-            "title": "Incidentio Alertmanager Url",
-            "description": "Bare Alertmanager source URL (no ?token= query param). Copy from incident.io UI: Alerts -> Alert sources -> Alertmanager.",
-            "example": "https://api.incident.io/v2/alert_events/alertmanager/XXXXXXXXXXXXXXXXXXX"
-          },
-          "incidentio_alertmanager_token": {
-            "type": "string",
-            "title": "Incidentio Alertmanager Token",
-            "description": "Secret token for the Alertmanager source. Sent in the Authorization header via a Kubernetes Secret reference.",
-            "example": "XXXXXXXXXXXXXXXXXXX"
-          },
-          "incidentio_heartbeat_url": {
-            "type": "string",
-            "title": "Incidentio Heartbeat Url",
-            "description": "Full Heartbeat URL including the ?token= query parameter. Copy from incident.io UI: Alerts -> Alert sources -> Heartbeat.",
-            "example": "https://api.incident.io/v2/heartbeat/YYYYYYYYYYYYY/ping?token=XXXXXXXXXXXXXXXXXXX"
-          }
-        },
-        "type": "object",
-        "required": [
-          "incidentio_alertmanager_url",
-          "incidentio_alertmanager_token",
-          "incidentio_heartbeat_url"
-        ],
-        "title": "IncidentioAlertsManifestRequest"
-      },
-      "K3dLbNodesDeleteRequest": {
-        "properties": {
-          "captain_domain": {
-            "type": "string",
-            "title": "Captain Domain",
-            "example": "nonprod.foobar.onglueops.rocks"
-          }
-        },
-        "type": "object",
-        "required": [
-          "captain_domain"
-        ],
-        "title": "K3dLbNodesDeleteRequest"
-      },
-      "K3dLbNodesRequest": {
+      "OpsgenieAlertsManifestRequest": {
         "properties": {
           "captain_domain": {
             "type": "string",
             "title": "Captain Domain",
             "example": "nonprod.foobar.onglueops.rocks"
           },
-          "node_count": {
-            "type": "integer",
-            "maximum": 6.0,
-            "minimum": 1.0,
-            "title": "Node Count",
-            "description": "Number of exit nodes to create (1-6, default: 3)",
-            "default": 3,
-            "example": 3
-          }
-        },
-        "type": "object",
-        "required": [
-          "captain_domain"
-        ],
-        "title": "K3dLbNodesRequest"
-      },
-      "KubeApiserverManifestRequest": {
-        "properties": {
-          "captain_domain": {
+          "opsgenie_api_key": {
             "type": "string",
-            "title": "Captain Domain",
-            "description": "Drives both the SNI host (kube-api.<captain_domain>) and the external-dns target (platform-v2.<captain_domain>).",
-            "example": "nonprod.foobar.onglueops.rocks"
-          },
-          "allowed_source_ranges": {
-            "type": "string",
-            "title": "Allowed Source Ranges",
-            "description": "Comma-separated CIDR ranges allowed to reach the kube-apiserver; at least one required. Replace the example (RFC 5737 documentation ranges) with your own IPs.",
-            "example": "192.0.2.10/32,198.51.100.0/24"
+            "title": "Opsgenie Api Key",
+            "example": "6825b4ef-4e84-44a1-8450-b46b02852add"
           }
         },
         "type": "object",
         "required": [
           "captain_domain",
-          "allowed_source_ranges"
+          "opsgenie_api_key"
         ],
-        "title": "KubeApiserverManifestRequest"
-      },
-      "KubeRbacManifestRequest": {
-        "properties": {
-          "captain_domain": {
-            "type": "string",
-            "title": "Captain Domain",
-            "description": "RoleBinding namespace = first label (e.g. \"nonprod\"); also the OIDC group suffix.",
-            "example": "nonprod.foobar.onglueops.rocks"
-          },
-          "tenant_github_organization_name": {
-            "type": "string",
-            "title": "Tenant Github Organization Name",
-            "description": "OIDC group prefix: oidc:<org>:<captain_domain>-kubectl-<reader|reader-plus|debugger|operator>.",
-            "example": "development-tenant-foobar"
-          }
-        },
-        "type": "object",
-        "required": [
-          "captain_domain",
-          "tenant_github_organization_name"
-        ],
-        "title": "KubeRbacManifestRequest"
+        "title": "OpsgenieAlertsManifestRequest"
       },
       "ResetGitHubOrganizationRequest": {
         "properties": {
@@ -755,6 +642,44 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VersionResponse": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "example": "v1.0.0"
+          },
+          "commit_sha": {
+            "type": "string",
+            "title": "Commit Sha",
+            "example": "abc1234567890def1234567890abcdef12345678"
+          },
+          "short_sha": {
+            "type": "string",
+            "title": "Short Sha",
+            "example": "abc1234"
+          },
+          "build_timestamp": {
+            "type": "string",
+            "title": "Build Timestamp",
+            "example": "2026-01-01T00:00:00Z"
+          },
+          "git_ref": {
+            "type": "string",
+            "title": "Git Ref",
+            "example": "main"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "commit_sha",
+          "short_sha",
+          "build_timestamp",
+          "git_ref"
+        ],
+        "title": "VersionResponse"
       }
     }
   }
