@@ -1,12 +1,13 @@
 from fastapi import FastAPI, Security, HTTPException, Depends, status, requests, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, HTMLResponse
 from fastapi.security import APIKeyHeader
+from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
 from typing import Optional, Dict, List
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 import os, glueops.setup_logging, traceback, base64, yaml, tempfile, json
-from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, ChiselNodesRequest, ChiselNodesDeleteRequest, K3dLbNodesRequest, K3dLbNodesDeleteRequest, ResetGitHubOrganizationRequest, OpsgenieAlertsManifestRequest, IncidentioAlertsManifestRequest, CaptainManifestsRequest, KubeApiserverManifestRequest, KubeRbacManifestRequest, GitHubWorkflowRunStatusRequest, VersionResponse
-from util import storage, aws_setup_test_account_credentials, github, hetzner, k3d_lb, opsgenie, incidentio, captain_manifests, kube_apiserver, kube_rbac
+from schemas.schemas import Message, AwsCredentialsRequest, StorageBucketsRequest, AwsNukeAccountRequest, CaptainDomainNukeDataAndBackupsRequest, K3dLbNodesRequest, K3dLbNodesDeleteRequest, ResetGitHubOrganizationRequest, IncidentioAlertsManifestRequest, CaptainManifestsRequest, KubeApiserverManifestRequest, KubeRbacManifestRequest, GitHubWorkflowRunStatusRequest, VersionResponse
+from util import storage, aws_setup_test_account_credentials, github, k3d_lb, incidentio, captain_manifests, kube_apiserver, kube_rbac
 from fastapi.responses import RedirectResponse
 
 
@@ -14,17 +15,120 @@ from fastapi.responses import RedirectResponse
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 
+# Build metadata, injected as build args by the container image workflow. Read once here so
+# the docs page and the /version endpoint cannot drift apart.
+VERSION = os.getenv("VERSION", "UNKNOWN")
+COMMIT_SHA = os.getenv("COMMIT_SHA", "UNKNOWN")
+SHORT_SHA = os.getenv("SHORT_SHA", "UNKNOWN")
+BUILD_TIMESTAMP = os.getenv("BUILD_TIMESTAMP", "UNKNOWN")
+GIT_REF = os.getenv("GIT_REF", "UNKNOWN")
+
+
+def _build_line():
+    """One-line build identity for the top of the docs page.
+
+    Outside a built image (e.g. `fastapi dev`) these are all UNKNOWN, so the commit is
+    rendered as plain text rather than a link that would 404 on GitHub.
+    """
+    commit = (
+        f"[`{SHORT_SHA}`](https://github.com/GlueOps/tools-api/commit/{COMMIT_SHA})"
+        if COMMIT_SHA != "UNKNOWN"
+        else f"`{SHORT_SHA}`"
+    )
+    return f"**`{VERSION}`** · commit {commit} · ref `{GIT_REF}` · built {BUILD_TIMESTAMP}\n"
+
+
+API_DESCRIPTION = _build_line() + """
+Internal APIs for GlueOps platform engineers: stand up dev/test infrastructure,
+generate cluster manifests, and tear it all down when you are done.
+
+### Conventions
+
+* Most endpoints are keyed on a **`captain_domain`** (e.g. `nonprod.foobar.onglueops.rocks`).
+  The first label (`nonprod`) is typically the tenant namespace.
+* Manifest endpoints return **plain-text YAML** that you commit to a deployment-configurations
+  repository — they do not apply anything to a cluster.
+* Every example value in this page is a real, working example. Click **Try it out** on any
+  endpoint to fire the request straight from here.
+
+### ⚠️ Destructive endpoints
+
+Operations marked **(destructive)** delete real infrastructure, repositories, or backups.
+Double-check the `captain_domain` / account name before running them.
+
+### Other views
+
+[ReDoc](/redoc) · [OpenAPI spec](/openapi.json) ·
+the [`tools` CLI](https://github.com/GlueOps/tools-api) wraps every endpoint below for headless machines.
+"""
 
 app = FastAPI(
     title="Tools API",
-    description="Various APIs to help you speed up your development and testing.",
-    version=os.getenv("VERSION", "UNKNOWN"),
-    swagger_ui_parameters={"defaultModelsExpandDepth": -1}
+    description=API_DESCRIPTION,
+    version=VERSION,
+    # Swagger UI is served by the custom /docs route below so the CSS can be injected.
+    docs_url=None,
+    swagger_ui_parameters={
+        # Hide the bottom "Schemas" dump; models are shown inline per endpoint.
+        "defaultModelsExpandDepth": -1,
+        # "list" shows every operation on load, each one collapsed. "none" would hide them
+        # behind a collapsed section header, which is the whole thing we are avoiding.
+        "docExpansion": "list",
+        "tryItOutEnabled": True,
+        "displayRequestDuration": True,
+        "persistAuthorization": True,
+        "syntaxHighlight.theme": "obsidian",
+    },
 )
+
+# Every operation's documented responses are FastAPI boilerplate: an identical 422
+# HTTPValidationError, and a 200 whose schema is a bare string or an empty object. Hiding
+# the block keeps the useful half of each operation (parameters, examples) on screen. The
+# live "Server response" from Try it out lives in the same wrapper, so it is left visible.
+SWAGGER_UI_CSS = """
+<style>
+  .swagger-ui .responses-wrapper > .opblock-section-header { display: none; }
+  .swagger-ui table.responses-table:not(.live-responses-table) { display: none; }
+
+  /* Request bodies here are 3-6 lines of JSON, against a stock 280px minimum sized for
+     far larger payloads, so most of the box is empty. Matched on .body-param__text so the
+     curl box rendered after Execute keeps its own (deliberately smaller) height. */
+  .swagger-ui textarea.body-param__text { min-height: 140px; }
+  /* 50px of chrome for a one-line "Parameters" / "Request body" label, twice per operation. */
+  .swagger-ui .opblock .opblock-section-header { min-height: 36px; }
+  .swagger-ui .highlight-code > .microlight { min-height: auto; }
+
+  /* Operations are ungrouped, so the single "default" section heading labels nothing. */
+  .swagger-ui .opblock-tag { display: none; }
+</style>
+"""
+
 
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse(url="/docs")
+
+
+# Replacing FastAPI's built-in docs route means re-doing what it did for us: prefixing
+# root_path so the page still finds the spec behind a path-prefix proxy, answering HEAD
+# alongside GET, and registering the oauth2-redirect route (setup() only does that when
+# docs_url is set, which it no longer is).
+@app.api_route("/docs", methods=["GET", "HEAD"], include_in_schema=False)
+async def swagger_ui(request: Request):
+    root_path = request.scope.get("root_path", "").rstrip("/")
+    html = get_swagger_ui_html(
+        openapi_url=root_path + app.openapi_url,
+        title=f"{app.title} - Swagger UI",
+        oauth2_redirect_url=root_path + app.swagger_ui_oauth2_redirect_url,
+        # FastAPI only applies these to its own built-in docs route, which we replaced.
+        swagger_ui_parameters=app.swagger_ui_parameters,
+    )
+    return HTMLResponse(html.body.decode().replace("</head>", SWAGGER_UI_CSS + "</head>"))
+
+
+@app.api_route(app.swagger_ui_oauth2_redirect_url, methods=["GET", "HEAD"], include_in_schema=False)
+async def swagger_ui_redirect():
+    return get_swagger_ui_oauth2_redirect_html()
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -44,16 +148,18 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-@app.post("/v1/storage-buckets", response_class=PlainTextResponse, summary="Create/Re-create storage buckets that can be used for V2 of our monitoring stack that is Otel based")
+@app.post("/v1/storage-buckets", response_class=PlainTextResponse, summary="Recreate monitoring storage buckets (destructive)")
 async def hello(request: StorageBucketsRequest):
     """
-        Note: this can be a DESTRUCTIVE operation
+        Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).
+
+        Note: this can be a DESTRUCTIVE operation.
         For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.
     """
     return storage.create_all_buckets(request.captain_domain)
 
 
-@app.post("/v1/setup-aws-account-credentials", response_class=PlainTextResponse, summary="Whether it's to create an EKS cluster or to test other things out in an isolated AWS account. These creds will give you Admin level access to the requested account.")
+@app.post("/v1/setup-aws-account-credentials", response_class=PlainTextResponse, summary="Get admin credentials for an AWS sub-account")
 async def create_credentials_for_aws_captain_account(request: AwsCredentialsRequest):
     """
     If you are testing in AWS/EKS you will need an AWS account to test with. This request will provide you with admin level credentials to the sub account you specify.
@@ -62,16 +168,23 @@ async def create_credentials_for_aws_captain_account(request: AwsCredentialsRequ
     return aws_setup_test_account_credentials.create_admin_credentials_within_captain_account(request.aws_sub_account_name)
 
 
-@app.delete("/v1/nuke-aws-captain-account", summary="Run this after you are done testing within AWS. This will clean up orphaned resources. Note: you may have to run this 2x.")
+@app.delete("/v1/nuke-aws-captain-account", summary="Nuke an AWS sub-account (destructive)")
 async def nuke_aws_captain_account(request: AwsNukeAccountRequest):
     """
-     Submit the AWS account name you want to nuke (e.g. glueops-captain-foobar)
+     Run this after you are done testing within AWS. This will clean up orphaned resources.
+
+     Submit the AWS account name you want to nuke (e.g. glueops-captain-foobar).
+
+     Note: you may have to run this 2x.
     """
     return github.nuke_aws_account_workflow(request.aws_sub_account_name)
 
-@app.delete("/v1/nuke-captain-domain-data", summary="Deletes all backups/data for a provided captain_domain. Running this before a cluster creation helps ensure a clean environment.")
+@app.delete("/v1/nuke-captain-domain-data", summary="Delete all backups/data for a captain domain (destructive)")
 async def nuke_captain_domain_data(request: CaptainDomainNukeDataAndBackupsRequest):
     """
+     Deletes all backups/data for a provided captain_domain. Running this before a cluster creation
+     helps ensure a clean environment.
+
      Submit the captain_domain/tenant you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will delete all backups and data for the provided captain_domain.
      
      This will remove things like the vault and cert-manager backups.
@@ -81,9 +194,11 @@ async def nuke_captain_domain_data(request: CaptainDomainNukeDataAndBackupsReque
     return github.nuke_captain_domain_data_and_backups(request.captain_domain)
 
 
-@app.delete("/v1/reset-github-organization", summary="Resets the GitHub Organization to make it easier to get a new dev cluster runner for Dev")
+@app.delete("/v1/reset-github-organization", summary="Reset a tenant GitHub organization (destructive)")
 async def reset_github_organization(request: ResetGitHubOrganizationRequest):
     """
+     Resets the GitHub Organization to make it easier to get a new dev cluster running for Dev.
+
      Submit the dev captain_domain you want to nuke (e.g. nonprod.foobar.onglueops.rocks). This will reset the GitHub organization so that you can easily get up and running with a new dev cluster.
      
      This will reset your deployment-configurations repository, it'll bring over a working regcred, and application repos with working github actions so that you can quickly work on the GlueOps stack.
@@ -101,33 +216,12 @@ async def get_workflow_run_status(request: GitHubWorkflowRunStatusRequest):
     """
     return github.get_workflow_run_status(request.run_url)
 
-@app.post("/v1/chisel", response_class=PlainTextResponse, summary="Creates Chisel nodes for dev/k3d clusters. This allows us to mimic a Cloud Controller for Loadbalancers (e.g. NLBs with EKS)")
-async def create_chisel_nodes(request: ChiselNodesRequest):
-    """
-        If you are testing within k3ds you will need chisel to provide you with load balancers.
-        For a provided captain_domain this will delete any existing chisel nodes and provision new ones.
-        Note: this will generally result in new IPs being provisioned.
-    """
-    logger.info(f"Received POST request to create chisel nodes for captain_domain: {request.captain_domain}")
-    result = hetzner.create_instances(request)
-    logger.info(f"Successfully completed chisel node creation for captain_domain: {request.captain_domain}")
-    return result
-
-
-@app.delete("/v1/chisel", summary="Deletes your chisel nodes. Please run this when you are done with development to save on costs.")
-async def delete_chisel_nodes(request: ChiselNodesDeleteRequest):
-    """
-        When you are done testing with k3ds this will delete your chisel nodes and save on costs.
-    """
-    logger.info(f"Received DELETE request to delete chisel nodes for captain_domain: {request.captain_domain}")
-    response = hetzner.delete_existing_servers(request)
-    logger.info(f"Successfully completed chisel node deletion for captain_domain: {request.captain_domain}")
-    return JSONResponse(status_code=200, content={"message": "Successfully deleted chisel nodes."})
-
-
-@app.post("/v1/k3d-lb-nodes", response_class=PlainTextResponse, summary="Creates Chisel nodes on Proxmox (via Waggle placement) for dev/k3d clusters. This allows us to mimic a Cloud Controller for Loadbalancers (e.g. NLBs with EKS)")
+@app.post("/v1/k3d-lb-nodes", response_class=PlainTextResponse, summary="Recreate k3d-lb nodes on Proxmox (destructive)")
 async def create_k3d_lb_nodes(request: K3dLbNodesRequest):
     """
+        Creates Chisel nodes on Proxmox (via Waggle placement) for dev/k3d clusters. This allows us to
+        mimic a Cloud Controller for Loadbalancers (e.g. NLBs with EKS).
+
         If you are testing within k3ds you will need chisel to provide you with load balancers.
         For a provided captain_domain this will delete any existing k3d-lb nodes and provision new ones.
         Placement is decided by Waggle (pool per captain_domain); the VMs are then created on the assigned
@@ -140,9 +234,11 @@ async def create_k3d_lb_nodes(request: K3dLbNodesRequest):
     return result
 
 
-@app.delete("/v1/k3d-lb-nodes", summary="Deletes your k3d-lb nodes. Please run this when you are done with development to free up capacity.")
+@app.delete("/v1/k3d-lb-nodes", summary="Delete k3d-lb nodes on Proxmox (destructive)")
 async def delete_k3d_lb_nodes(request: K3dLbNodesDeleteRequest):
     """
+        Deletes your k3d-lb nodes. Please run this when you are done with development to free up capacity.
+
         When you are done testing with k3ds this will delete your k3d-lb nodes (Proxmox VMs + Waggle pool) and free up capacity.
     """
     logger.info(f"Received DELETE request to delete k3d-lb nodes for captain_domain: {request.captain_domain}")
@@ -151,23 +247,18 @@ async def delete_k3d_lb_nodes(request: K3dLbNodesDeleteRequest):
     return JSONResponse(status_code=200, content={"message": "Successfully deleted k3d-lb nodes."})
 
 
-@app.post("/v1/opsgenie", response_class=PlainTextResponse, summary="Creates Opsgenie Alerts Manifest")
-async def create_opsgeniealerts_manifest(request: OpsgenieAlertsManifestRequest):
-    """
-        Create a opsgenie/alertmanager configuration. Do this for any clusters you want alerts on.
-    """
-    return opsgenie.create_opsgeniealerts_manifest(request)
-
-@app.post("/v1/incidentio", response_class=PlainTextResponse, summary="Creates Incident.io Alerts Manifest")
+@app.post("/v1/incidentio", response_class=PlainTextResponse, summary="Generate incident.io alerts manifest")
 async def create_incidentioalerts_manifest(request: IncidentioAlertsManifestRequest):
     """
         Create an incident.io/alertmanager configuration. Do this for any clusters you want alerts on.
     """
     return incidentio.create_incidentioalerts_manifest(request)
 
-@app.post("/v1/kube-apiserver", response_class=PlainTextResponse, summary="Generate manifest to expose the cluster kube-apiserver via Traefik (TLS passthrough + IP allowlist)")
+@app.post("/v1/kube-apiserver", response_class=PlainTextResponse, summary="Generate kube-apiserver exposure manifest")
 async def create_kube_apiserver_manifest(request: KubeApiserverManifestRequest):
     """
+        Expose the cluster kube-apiserver via Traefik (TLS passthrough + IP allowlist).
+
         Generate the Namespace + Traefik MiddlewareTCP + IngressRouteTCP manifest that
         exposes the cluster's Kubernetes API server at kube-api.<captain_domain>,
         restricted to the provided IP allowlist, with TLS passthrough.
@@ -178,9 +269,11 @@ async def create_kube_apiserver_manifest(request: KubeApiserverManifestRequest):
     """
     return kube_apiserver.create_kube_apiserver_manifest(request)
 
-@app.post("/v1/kube-rbac", response_class=PlainTextResponse, summary="Generate developer-debug RBAC (reader/reader-plus/debugger/operator) for a tenant's namespace")
+@app.post("/v1/kube-rbac", response_class=PlainTextResponse, summary="Generate developer-debug RBAC manifest")
 async def create_kube_rbac_manifest(request: KubeRbacManifestRequest):
     """
+        Developer-debug RBAC (reader/reader-plus/debugger/operator) for a tenant's namespace.
+
         Generate the ClusterRoles + namespace-scoped RoleBindings that let a tenant's developers
         debug their workloads (Lens/k9s) in their <environment> namespace via the kube-apiserver
         exposed by /v1/kube-apiserver. The namespace is the first label of captain_domain and the
@@ -210,12 +303,15 @@ async def health():
     return {"status": "healthy"}
 
 
-@app.get("/version", response_model=VersionResponse, summary="Contains version information about this tools-api")
+# Not in the schema: the build metadata is shown at the top of the docs page instead.
+# The route stays because the CLI self-updater polls it on every command
+# (cli/internal/updater/updater.go).
+@app.get("/version", response_model=VersionResponse, include_in_schema=False)
 async def version():
     return VersionResponse(
-        version=os.getenv("VERSION", "UNKNOWN"),
-        commit_sha=os.getenv("COMMIT_SHA", "UNKNOWN"),
-        short_sha=os.getenv("SHORT_SHA", "UNKNOWN"),
-        build_timestamp=os.getenv("BUILD_TIMESTAMP", "UNKNOWN"),
-        git_ref=os.getenv("GIT_REF", "UNKNOWN"),
+        version=VERSION,
+        commit_sha=COMMIT_SHA,
+        short_sha=SHORT_SHA,
+        build_timestamp=BUILD_TIMESTAMP,
+        git_ref=GIT_REF,
     )

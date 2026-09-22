@@ -11,19 +11,6 @@ class VersionResponse(BaseModel):
     build_timestamp: str = Field(..., example='2026-01-01T00:00:00Z')
     git_ref: str = Field(..., example='main')
 
-class ChiselNodesRequest(BaseModel):
-    captain_domain: str = Field(..., example='nonprod.foobar.onglueops.rocks')
-    node_count: int = Field(
-        default=3,
-        ge=1,
-        le=6,
-        example=3,
-        description="Number of exit nodes to create (1-6, default: 3)"
-    )
-
-class ChiselNodesDeleteRequest(BaseModel):
-    captain_domain: str = Field(..., example='nonprod.foobar.onglueops.rocks')
-
 class K3dLbNodesRequest(BaseModel):
     captain_domain: str = Field(..., example='nonprod.foobar.onglueops.rocks')
     node_count: int = Field(
@@ -54,10 +41,6 @@ class ResetGitHubOrganizationRequest(BaseModel):
     delete_all_existing_repos: bool = Field(...,example = True)
     custom_domain: str = Field(...,example = "example.com")
     enable_custom_domain: bool = Field(...,example = False)
-
-class OpsgenieAlertsManifestRequest(BaseModel):
-    captain_domain: str  = Field(...,example = 'nonprod.foobar.onglueops.rocks')
-    opsgenie_api_key: str  = Field(...,example = '6825b4ef-4e84-44a1-8450-b46b02852add')
 
 class IncidentioAlertsManifestRequest(BaseModel):
     incidentio_alertmanager_url: str = Field(
