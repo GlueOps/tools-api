@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.0](https://github.com/GlueOps/tools-api/compare/v0.7.2...v0.8.0) (2026-09-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* POST /v1/chisel and DELETE /v1/chisel are removed. Use /v1/k3d-lb-nodes (Proxmox/Waggle) instead. The `tools chisel` CLI command is removed along with them.
+
+### Features
+
+* remove Hetzner chisel and Opsgenie endpoints, rework the docs page ([#109](https://github.com/GlueOps/tools-api/issues/109)) ([a8af019](https://github.com/GlueOps/tools-api/commit/a8af0194bdf3a5087191fc9e30ccdef8fa0bd8c3))
+
 ## [0.7.2](https://github.com/GlueOps/tools-api/compare/v0.7.1...v0.7.2) (2026-08-29)
 
 
