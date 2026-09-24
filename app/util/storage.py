@@ -12,12 +12,12 @@ logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 
 # ----------------------- Configuration ----------------------- #
 
-# MinIO Server Configuration
-MINIO_SERVER = f"{os.getenv("HETZNER_STORAGE_REGION")}.your-objectstorage.com"  # Replace with your MinIO server
-ACCESS_KEY = os.getenv("MINIO_S3_ACCESS_KEY_ID")               # Replace with your Access Key
-SECRET_KEY = os.getenv("MINIO_S3_SECRET_KEY")                  # Replace with your Secret Key
-MINIO_REGION = os.getenv("HETZNER_STORAGE_REGION")             # Replace with your region
-USE_SSL = True                                # Set to False if not using SSL
+# RustFS Server Configuration (S3-compatible, accessed via the MinIO client)
+RUSTFS_ENDPOINT = os.getenv("RUSTFS_ENDPOINT")                 # Host[:port] only, e.g. rustfs.glueopshosted.rocks
+ACCESS_KEY = os.getenv("RUSTFS_ACCESS_KEY_ID")
+SECRET_KEY = os.getenv("RUSTFS_SECRET_KEY")
+RUSTFS_REGION = os.getenv("RUSTFS_REGION", "us-east-1")        # RustFS default region
+USE_SSL = os.getenv("RUSTFS_USE_SSL", "true").lower() != "false"
 
 # Bucket Configuration
 UUID_LENGTH = 4                               # Length of UUID suffix (adjust as needed)
@@ -25,21 +25,21 @@ UUID_FORMAT = 'hex'                            # Format of UUID ('hex' for hexad
 
 # ----------------------- Functions ----------------------- #
 
-def initialize_minio_client():
+def initialize_rustfs_client():
     """
-    Initializes and returns a MinIO client.
+    Initializes and returns a MinIO client pointed at RustFS.
     """
     try:
         client = Minio(
-            MINIO_SERVER,
+            RUSTFS_ENDPOINT,
             access_key=ACCESS_KEY,
             secret_key=SECRET_KEY,
             secure=USE_SSL,
-            region=MINIO_REGION
+            region=RUSTFS_REGION
         )
         return client
     except Exception as e:
-        logger.error(f"Failed to initialize MinIO client: {e}")
+        logger.error(f"Failed to initialize RustFS client: {e}")
         raise
 
 
@@ -73,7 +73,8 @@ def parameterize_storage_config(bucket_prefix):
     Returns:
         str: The parameterized storage configuration.
     """
-    endpoint_host = f"{MINIO_REGION}.your-objectstorage.com"
+    endpoint_host = RUSTFS_ENDPOINT
+    scheme = "https" if USE_SSL else "http"
 
     loki_storage = {
         "bucketNames": {
@@ -84,12 +85,12 @@ def parameterize_storage_config(bucket_prefix):
         "type": "s3",
         "s3": {
             "s3": f"{bucket_prefix}-loki",
-            "endpoint": f"https://{endpoint_host}",
-            "region": "us-east-1",
+            "endpoint": f"{scheme}://{endpoint_host}",
+            "region": RUSTFS_REGION,
             "accessKeyId": ACCESS_KEY,
             "secretAccessKey": SECRET_KEY,
-            "s3ForcePathStyle": False,
-            "insecure": False,
+            "s3ForcePathStyle": True,
+            "insecure": not USE_SSL,
         },
     }
     thanos_storage = {
@@ -97,8 +98,11 @@ def parameterize_storage_config(bucket_prefix):
         "config": {
             "bucket": f"{bucket_prefix}-thanos",
             "endpoint": endpoint_host,
+            "region": RUSTFS_REGION,
             "access_key": ACCESS_KEY,
             "secret_key": SECRET_KEY,
+            "insecure": not USE_SSL,
+            "bucket_lookup_type": "path",
         },
     }
     tempo_storage = {
@@ -108,7 +112,9 @@ def parameterize_storage_config(bucket_prefix):
             "secret_key": SECRET_KEY,
             "bucket": f"{bucket_prefix}-tempo",
             "endpoint": endpoint_host,
-            "insecure": False,
+            "region": RUSTFS_REGION,
+            "insecure": not USE_SSL,
+            "forcepathstyle": True,
         },
     }
 
@@ -163,7 +169,7 @@ def list_buckets(client):
     Retrieves and returns a list of all buckets.
     
     Args:
-        client (Minio): The MinIO client instance.
+        client (Minio): The MinIO client instance connected to RustFS.
     
     Returns:
         list: A list of bucket objects.
@@ -194,7 +200,7 @@ def delete_all_objects(client, bucket_name):
     Deletes all objects within the specified bucket.
     
     Args:
-        client (Minio): The MinIO client instance.
+        client (Minio): The MinIO client instance connected to RustFS.
         bucket_name (str): The name of the bucket from which to delete objects.
     """
     try:
@@ -215,7 +221,7 @@ def delete_bucket(client, bucket_name):
     Deletes the specified bucket after removing all its contents.
     
     Args:
-        client (Minio): The MinIO client instance.
+        client (Minio): The MinIO client instance connected to RustFS.
         bucket_name (str): The name of the bucket to delete.
     """
     # Delete all objects in the bucket
@@ -235,7 +241,7 @@ def create_bucket(client, bucket_name):
     Creates new buckets with the specified name and suffixes.
     
     Args:
-        client (Minio): The MinIO client instance.
+        client (Minio): The MinIO client instance connected to RustFS.
         bucket_name (str): The base name of the buckets to create.
     
     Returns:
@@ -256,8 +262,8 @@ def create_all_buckets(captain_domain):
     """
     Manages buckets by deleting existing ones containing the base name and creating a new unique bucket.
     """
-    # Initialize MinIO client
-    client = initialize_minio_client()
+    # Initialize RustFS client
+    client = initialize_rustfs_client()
     
     # List all buckets
     logger.info("Listing all existing buckets...")

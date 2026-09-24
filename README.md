@@ -30,9 +30,11 @@ The CLI self-updates automatically when the API version changes. See [`cli/`](cl
 AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY
 AWS_GLUEOPS_ROCKS_ORG_SECRET_KEY
 GITHUB_TOKEN
-MINIO_S3_ACCESS_KEY_ID
-MINIO_S3_SECRET_KEY
-HETZNER_STORAGE_REGION=hel1
+RUSTFS_ENDPOINT=rustfs.glueopshosted.rocks   # host[:port], no scheme
+RUSTFS_ACCESS_KEY_ID
+RUSTFS_SECRET_KEY
+RUSTFS_REGION=us-east-1           # optional, default: us-east-1
+RUSTFS_USE_SSL=true               # optional, default: true
 ```
 
 ### Required for `/v1/k3d-lb-nodes` (Chisel nodes on Proxmox via Waggle):
