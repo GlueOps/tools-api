@@ -1,6 +1,7 @@
 import hashlib
 import json
 import secrets
+import time
 import uuid
 from Crypto.Cipher import AES
 from minio import Minio
@@ -291,19 +292,18 @@ def delete_all_objects(client, bucket_name):
 
 def delete_bucket(client, bucket_name):
     """
-    Deletes the specified bucket after removing all its contents.
-    
+    Deletes the specified bucket and all its contents.
+
+    Uses RustFS's force delete (``x-rustfs-force-delete``) so the server wipes
+    the contents in a single request. minio-py's ``remove_bucket()`` cannot
+    send extra headers, hence the lower-level ``_execute``.
+
     Args:
         client (Minio): The MinIO client instance connected to RustFS.
         bucket_name (str): The name of the bucket to delete.
     """
-    # Delete all objects in the bucket
-    #logger.info(f"Deleting all objects in bucket '{bucket_name}'...")
-    delete_all_objects(client, bucket_name)
-    
     try:
-        # Remove the bucket
-        client.remove_bucket(bucket_name)
+        client._execute("DELETE", bucket_name, headers={"x-rustfs-force-delete": "true"})
         logger.info(f"Bucket '{bucket_name}' has been deleted successfully.")
     except S3Error as e:
         logger.error(f"Error removing bucket '{bucket_name}': {e}")
@@ -409,6 +409,8 @@ def create_all_buckets(captain_domain):
     # Find buckets containing the base name
     base_bucket_name = make_compliant_name(captain_domain)
 
+    delete_started = time.monotonic()
+
     # Delete IAM users/policies of the previous buckets
     delete_bucket_users(admin, base_bucket_name)
 
@@ -421,7 +423,9 @@ def create_all_buckets(captain_domain):
             delete_bucket(client, bucket_name)
     else:
         logger.info(f"No existing buckets contain the base name '{base_bucket_name}'.")
-    
+    logger.info(f"Deleted {len(matching_buckets)} bucket(s) in {time.monotonic() - delete_started:.2f}s")
+
+    create_started = time.monotonic()
     # Generate a unique bucket name
     unique_bucket_name = generate_unique_bucket_name(base_bucket_name)
     logger.info(f"Generated unique bucket name: {unique_bucket_name}")
@@ -435,6 +439,7 @@ def create_all_buckets(captain_domain):
         suffix: create_bucket_user(admin, f"{bucket_prefix}-{suffix}")
         for suffix in BUCKET_SUFFIXES
     }
+    logger.info(f"Created buckets + IAM users in {time.monotonic() - create_started:.2f}s")
     parameterized_config = parameterize_storage_config(bucket_prefix, credentials)
     return parameterized_config
 
