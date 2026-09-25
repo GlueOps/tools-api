@@ -4,7 +4,7 @@ This file provides guidance to AI coding assistants when working with code in th
 
 ## Project Overview
 
-tools-api is a FastAPI service providing internal REST APIs for GlueOps platform engineers. It manages AWS accounts, cloud storage (MinIO), Proxmox infrastructure (Chisel load balancer nodes), GitHub organization setup, Kubernetes/ArgoCD manifest generation, and alerting integrations (incident.io).
+tools-api is a FastAPI service providing internal REST APIs for GlueOps platform engineers. It manages AWS accounts, cloud storage (RustFS), Proxmox infrastructure (Chisel load balancer nodes), GitHub organization setup, Kubernetes/ArgoCD manifest generation, and alerting integrations (incident.io).
 
 A companion Go CLI (`cli/`) allows engineers to interact with the API from headless Linux machines. See [`cli/.ai/AGENTS.md`](../cli/.ai/AGENTS.md) for CLI-specific guidance.
 
@@ -24,7 +24,7 @@ fastapi dev
 fastapi run
 ```
 
-Required environment variables: `AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY`, `AWS_GLUEOPS_ROCKS_ORG_SECRET_KEY`, `GITHUB_TOKEN`, `MINIO_S3_ACCESS_KEY_ID`, `MINIO_S3_SECRET_KEY`, `HETZNER_STORAGE_REGION=hel1`.
+Required environment variables: `AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY`, `AWS_GLUEOPS_ROCKS_ORG_SECRET_KEY`, `GITHUB_TOKEN`, `RUSTFS_ENDPOINT`, `RUSTFS_ACCESS_KEY_ID`, `RUSTFS_SECRET_KEY` (RustFS admin credentials — `storage.py` creates one IAM user per bucket and hands those scoped keys out in the generated config, never the admin keys; optional: `RUSTFS_REGION`, default `us-east-1`; `RUSTFS_USE_SSL`, default `true`).
 
 ## Build
 
@@ -38,7 +38,7 @@ The Dockerfile uses `python:3.14-slim` as base, installs dependencies via pipenv
 
 - **`app/main.py`** — FastAPI app entry point. Defines all API routes, global exception handler, and the health/version endpoints. Both `/health` and `/version` are served but kept out of the OpenAPI schema (`include_in_schema=False`) — `/version` must stay because the CLI self-updater polls it on every command (`cli/internal/updater/updater.go`); its build metadata is shown at the top of the docs page instead. Routes redirect `/` to `/docs`, which is served by a custom route so Swagger UI CSS can be injected.
 - **`app/schemas/schemas.py`** — Pydantic request/response models for all endpoints (including `VersionResponse` for the unpublished `/version` route). Examples and descriptions defined here are the single source of truth — the CLI reads them from the embedded OpenAPI spec at compile time.
-- **`app/util/`** — Business logic modules, one per domain: `storage.py` (MinIO), `github.py`, `aws_setup_test_account_credentials.py`, `chisel.py`, `k3d_lb.py`, `captain_manifests.py`, `incidentio.py`. The alerting module (`incidentio.py`) is the template for this pattern: a single `create_<x>alerts_manifest(request)` function returning an ArgoCD Application YAML as a plain f-string template. New alerting integrations should follow the same shape.
+- **`app/util/`** — Business logic modules, one per domain: `storage.py` (RustFS, via the `minio` client), `github.py`, `aws_setup_test_account_credentials.py`, `chisel.py`, `k3d_lb.py`, `captain_manifests.py`, `incidentio.py`. The alerting module (`incidentio.py`) is the template for this pattern: a single `create_<x>alerts_manifest(request)` function returning an ArgoCD Application YAML as a plain f-string template. New alerting integrations should follow the same shape.
 - **`app/templates/captain_manifests/`** — Jinja2 templates (`.yaml.j2`) for generating Kubernetes manifests (Namespace, AppProject, ApplicationSet).
 - **`cli/`** — Go CLI binary. See [`cli/.ai/AGENTS.md`](../cli/.ai/AGENTS.md).
 
@@ -51,7 +51,7 @@ The `/v1/k3d-lb-nodes` endpoints (`k3d_lb.py`) provision Chisel exit nodes on Pr
 ## Key Dependencies
 
 - **`glueops-helpers`** — Internal library (installed from GitHub) providing `setup_logging`, `ProxmoxClient`, `WaggleClient`, and shared utilities.
-- **`minio`** — S3-compatible storage client.
+- **`minio`** — S3-compatible storage client (used to talk to RustFS).
 - **`boto3`** — AWS SDK (account credential management via STS/Organizations).
 - **`httpx`** — Async HTTP client (also used by the glueops-helpers Proxmox/Waggle clients).
 

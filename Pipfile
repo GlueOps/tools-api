@@ -11,6 +11,7 @@ boto3 = "*"
 httpx = "*"
 
 [dev-packages]
+pytest = "*"
 
 [requires]
 python_version = "3.13"

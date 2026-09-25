@@ -30,9 +30,11 @@ The CLI self-updates automatically when the API version changes. See [`cli/`](cl
 AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY
 AWS_GLUEOPS_ROCKS_ORG_SECRET_KEY
 GITHUB_TOKEN
-MINIO_S3_ACCESS_KEY_ID
-MINIO_S3_SECRET_KEY
-HETZNER_STORAGE_REGION=hel1
+RUSTFS_ENDPOINT=rustfs.glueopshosted.rocks   # host[:port], no scheme
+RUSTFS_ACCESS_KEY_ID              # admin creds: used to manage buckets and per-bucket IAM users
+RUSTFS_SECRET_KEY
+RUSTFS_REGION=us-east-1           # optional, default: us-east-1
+RUSTFS_USE_SSL=true               # optional, default: true
 ```
 
 ### Required for `/v1/k3d-lb-nodes` (Chisel nodes on Proxmox via Waggle):
@@ -61,3 +63,26 @@ PROXMOX_DOWNLOAD_SERVER_URL=https://github.com/GlueOps/proxmox-images-chisel/rel
 PROXMOX_IMAGE_DOWNLOAD_TIMEOUT=1800  # optional, seconds to wait for image downloads (default: 1800)
 K3D_LB_VM_IMAGE=tools-api-k3d-lb-chisel-debian-13-amd64  # optional, default shown
 ```
+
+## Integration test
+
+`tests/integration/test_storage_buckets.py` creates the storage buckets through the API, fills the loki bucket with data, calls the endpoint again for the same captain domain, and prints how long the recreate took. The API also logs the time the delete step took on its own (`Deleted N bucket(s) in Xs`).
+
+Start RustFS and the API with the same `RUSTFS_*` env vars (the test uses them to upload the data), then:
+
+```bash
+docker run -d --name rustfs -p 9000:9000 -p 9001:9001 \
+  -e RUSTFS_ACCESS_KEY=rustfsadmin -e RUSTFS_SECRET_KEY=rustfsadmin rustfs/rustfs:latest
+pipenv install --dev
+pytest -s tests/integration
+```
+
+```bash
+TOOLS_API_URL=http://localhost:8080                          # optional, default shown
+STORAGE_TEST_CAPTAIN_DOMAIN=storage-timing-test.example.com  # optional, default shown
+STORAGE_TEST_OBJECT_COUNT=1000                               # optional, default shown
+STORAGE_TEST_OBJECT_SIZE_MB=1                                # optional, default shown
+STORAGE_TEST_UPLOAD_WORKERS=16                               # optional, default shown
+```
+
+The test is skipped when the `RUSTFS_*` env vars are not set.
