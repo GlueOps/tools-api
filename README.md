@@ -31,7 +31,7 @@ AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY
 AWS_GLUEOPS_ROCKS_ORG_SECRET_KEY
 GITHUB_TOKEN
 RUSTFS_ENDPOINT=rustfs.glueopshosted.rocks   # host[:port], no scheme
-RUSTFS_ACCESS_KEY_ID
+RUSTFS_ACCESS_KEY_ID              # admin creds: used to manage buckets and per-bucket IAM users
 RUSTFS_SECRET_KEY
 RUSTFS_REGION=us-east-1           # optional, default: us-east-1
 RUSTFS_USE_SSL=true               # optional, default: true

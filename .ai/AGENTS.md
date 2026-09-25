@@ -24,7 +24,7 @@ fastapi dev
 fastapi run
 ```
 
-Required environment variables: `AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY`, `AWS_GLUEOPS_ROCKS_ORG_SECRET_KEY`, `GITHUB_TOKEN`, `RUSTFS_ENDPOINT`, `RUSTFS_ACCESS_KEY_ID`, `RUSTFS_SECRET_KEY` (optional: `RUSTFS_REGION`, default `us-east-1`; `RUSTFS_USE_SSL`, default `true`).
+Required environment variables: `AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY`, `AWS_GLUEOPS_ROCKS_ORG_SECRET_KEY`, `GITHUB_TOKEN`, `RUSTFS_ENDPOINT`, `RUSTFS_ACCESS_KEY_ID`, `RUSTFS_SECRET_KEY` (RustFS admin credentials — `storage.py` creates one IAM user per bucket and hands those scoped keys out in the generated config, never the admin keys; optional: `RUSTFS_REGION`, default `us-east-1`; `RUSTFS_USE_SSL`, default `true`).
 
 ## Build
 

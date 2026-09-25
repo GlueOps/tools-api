@@ -1,5 +1,9 @@
+import json
+import secrets
 import uuid
 from minio import Minio
+from minio.credentials import StaticProvider
+from minio.minioadmin import MinioAdmin
 from minio.error import S3Error
 from minio.deleteobjects import DeleteObject
 import re
@@ -13,6 +17,7 @@ logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 # ----------------------- Configuration ----------------------- #
 
 # RustFS Server Configuration (S3-compatible, accessed via the MinIO client)
+# These must be admin credentials: they manage buckets and the per-bucket IAM users.
 RUSTFS_ENDPOINT = os.getenv("RUSTFS_ENDPOINT")                 # Host[:port] only, e.g. rustfs.glueopshosted.rocks
 ACCESS_KEY = os.getenv("RUSTFS_ACCESS_KEY_ID")
 SECRET_KEY = os.getenv("RUSTFS_SECRET_KEY")
@@ -22,6 +27,7 @@ USE_SSL = os.getenv("RUSTFS_USE_SSL", "true").lower() != "false"
 # Bucket Configuration
 UUID_LENGTH = 4                               # Length of UUID suffix (adjust as needed)
 UUID_FORMAT = 'hex'                            # Format of UUID ('hex' for hexadecimal)
+BUCKET_SUFFIXES = ["tempo", "loki", "thanos"]  # One bucket (and IAM user) per suffix
 
 # ----------------------- Functions ----------------------- #
 
@@ -43,6 +49,22 @@ def initialize_rustfs_client():
         raise
 
 
+def initialize_rustfs_admin_client():
+    """
+    Initializes and returns a MinIO admin client pointed at RustFS (used for IAM).
+    """
+    try:
+        return MinioAdmin(
+            endpoint=RUSTFS_ENDPOINT,
+            credentials=StaticProvider(ACCESS_KEY, SECRET_KEY),
+            region=RUSTFS_REGION,
+            secure=USE_SSL,
+        )
+    except Exception as e:
+        logger.error(f"Failed to initialize RustFS admin client: {e}")
+        raise
+
+
 def make_compliant_name(name: str) -> str:
     # Remove invalid characters (anything not lowercase letters, numbers, or hyphens)
     name = re.sub(r'[^a-z0-9\-]', '', name.lower())
@@ -57,7 +79,7 @@ def make_compliant_name(name: str) -> str:
     return name if name else "default-name"
 
 
-def parameterize_storage_config(bucket_prefix):
+def parameterize_storage_config(bucket_prefix, credentials):
     """
     Builds the loki/thanos/tempo storage config as three terraform heredoc
     assignments ready to paste into a tenant's `cluster_environments` block.
@@ -69,12 +91,17 @@ def parameterize_storage_config(bucket_prefix):
 
     Args:
         bucket_prefix (str): The prefix for the buckets.
+        credentials (dict): Maps each bucket suffix ("loki", "thanos", "tempo")
+            to the (access_key, secret_key) of the IAM user scoped to that bucket.
 
     Returns:
         str: The parameterized storage configuration.
     """
     endpoint_host = RUSTFS_ENDPOINT
     scheme = "https" if USE_SSL else "http"
+    loki_access_key, loki_secret_key = credentials["loki"]
+    thanos_access_key, thanos_secret_key = credentials["thanos"]
+    tempo_access_key, tempo_secret_key = credentials["tempo"]
 
     loki_storage = {
         "bucketNames": {
@@ -87,8 +114,8 @@ def parameterize_storage_config(bucket_prefix):
             "s3": f"{bucket_prefix}-loki",
             "endpoint": f"{scheme}://{endpoint_host}",
             "region": RUSTFS_REGION,
-            "accessKeyId": ACCESS_KEY,
-            "secretAccessKey": SECRET_KEY,
+            "accessKeyId": loki_access_key,
+            "secretAccessKey": loki_secret_key,
             "s3ForcePathStyle": True,
             "insecure": not USE_SSL,
         },
@@ -99,8 +126,8 @@ def parameterize_storage_config(bucket_prefix):
             "bucket": f"{bucket_prefix}-thanos",
             "endpoint": endpoint_host,
             "region": RUSTFS_REGION,
-            "access_key": ACCESS_KEY,
-            "secret_key": SECRET_KEY,
+            "access_key": thanos_access_key,
+            "secret_key": thanos_secret_key,
             "insecure": not USE_SSL,
             "bucket_lookup_type": "path",
         },
@@ -108,8 +135,8 @@ def parameterize_storage_config(bucket_prefix):
     tempo_storage = {
         "backend": "s3",
         "s3": {
-            "access_key": ACCESS_KEY,
-            "secret_key": SECRET_KEY,
+            "access_key": tempo_access_key,
+            "secret_key": tempo_secret_key,
             "bucket": f"{bucket_prefix}-tempo",
             "endpoint": endpoint_host,
             "region": RUSTFS_REGION,
@@ -226,7 +253,7 @@ def delete_bucket(client, bucket_name):
     """
     # Delete all objects in the bucket
     #logger.info(f"Deleting all objects in bucket '{bucket_name}'...")
-    #delete_all_objects(client, bucket_name)
+    delete_all_objects(client, bucket_name)
     
     try:
         # Remove the bucket
@@ -247,9 +274,8 @@ def create_bucket(client, bucket_name):
     Returns:
         str: The base name of the buckets created.
     """
-    suffixes = ["tempo", "loki", "thanos"]
     try:
-        for suffix in suffixes:
+        for suffix in BUCKET_SUFFIXES:
             full_bucket_name = f"{bucket_name}-{suffix}"
             client.make_bucket(full_bucket_name)
             logger.info(f"Bucket '{full_bucket_name}' created successfully.")
@@ -258,12 +284,77 @@ def create_bucket(client, bucket_name):
         logger.info(f"Error creating bucket '{full_bucket_name}': {e}")
         raise
 
+def create_bucket_user(admin, bucket_name):
+    """
+    Creates an IAM user with a policy granting access to a single bucket only.
+
+    The policy is named after the bucket, which is how stale users are found
+    again by ``delete_bucket_users``. The access key is random because names
+    derived from the captain domain can exceed access key length limits.
+
+    Args:
+        admin (MinioAdmin): The MinIO admin client instance connected to RustFS.
+        bucket_name (str): The bucket the user is scoped to.
+
+    Returns:
+        tuple: The (access_key, secret_key) of the created user.
+    """
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["s3:*"],
+                "Resource": [
+                    f"arn:aws:s3:::{bucket_name}",
+                    f"arn:aws:s3:::{bucket_name}/*",
+                ],
+            }
+        ],
+    }
+    access_key = secrets.token_hex(10)
+    secret_key = secrets.token_hex(20)
+    try:
+        admin.policy_add(bucket_name, policy=policy)
+        admin.user_add(access_key, secret_key)
+        admin.attach_policy([bucket_name], user=access_key)
+        logger.info(f"IAM user '{access_key}' created for bucket '{bucket_name}'.")
+        return access_key, secret_key
+    except Exception as e:
+        logger.error(f"Error creating IAM user for bucket '{bucket_name}': {e}")
+        raise
+
+def delete_bucket_users(admin, base_name):
+    """
+    Deletes the IAM users and policies previously created for buckets containing the base name.
+
+    Args:
+        admin (MinioAdmin): The MinIO admin client instance connected to RustFS.
+        base_name (str): The base name to search for within policy names.
+    """
+    try:
+        users = json.loads(admin.user_list() or "{}")
+        for access_key, info in users.items():
+            if base_name in (info.get("policyName") or ""):
+                admin.user_remove(access_key)
+                logger.info(f"Deleted IAM user '{access_key}' ({info.get('policyName')}).")
+
+        policies = json.loads(admin.policy_list() or "{}")
+        for policy_name in policies:
+            if base_name in policy_name:
+                admin.policy_remove(policy_name)
+                logger.info(f"Deleted IAM policy '{policy_name}'.")
+    except Exception as e:
+        logger.error(f"Error deleting IAM users for '{base_name}': {e}")
+        raise
+
 def create_all_buckets(captain_domain):
     """
     Manages buckets by deleting existing ones containing the base name and creating a new unique bucket.
     """
-    # Initialize RustFS client
+    # Initialize RustFS clients
     client = initialize_rustfs_client()
+    admin = initialize_rustfs_admin_client()
     
     # List all buckets
     logger.info("Listing all existing buckets...")
@@ -271,6 +362,10 @@ def create_all_buckets(captain_domain):
     
     # Find buckets containing the base name
     base_bucket_name = make_compliant_name(captain_domain)
+
+    # Delete IAM users/policies of the previous buckets
+    delete_bucket_users(admin, base_bucket_name)
+
     matching_buckets = find_buckets_containing(base_bucket_name, buckets)
     
     # Delete each matching bucket
@@ -288,6 +383,12 @@ def create_all_buckets(captain_domain):
     # Create the new bucket
     bucket_prefix = create_bucket(client, unique_bucket_name)
     logger.info(f"Buckets created with prefix: {bucket_prefix}")
-    parameterized_config = parameterize_storage_config(bucket_prefix)
+
+    # Create one IAM user per bucket, scoped to that bucket only
+    credentials = {
+        suffix: create_bucket_user(admin, f"{bucket_prefix}-{suffix}")
+        for suffix in BUCKET_SUFFIXES
+    }
+    parameterized_config = parameterize_storage_config(bucket_prefix, credentials)
     return parameterized_config
 
