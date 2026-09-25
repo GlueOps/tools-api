@@ -1,7 +1,10 @@
+import hashlib
 import json
 import secrets
 import uuid
+from Crypto.Cipher import AES
 from minio import Minio
+from minio import crypto as minio_crypto
 from minio.credentials import StaticProvider
 from minio.minioadmin import MinioAdmin
 from minio.error import S3Error
@@ -13,6 +16,49 @@ import glueops.setup_logging
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 logger = glueops.setup_logging.configure(level=LOG_LEVEL)
+
+# ----------------------- RustFS admin crypto compat ----------------------- #
+
+# minio-py only decrypts admin responses encrypted with AEAD IDs 0/1 (Argon2id key).
+# FIPS builds of RustFS answer with ID 2: the same stream format, but with a
+# PBKDF2-SHA256 (8192 iterations) key and AES-GCM. Teach minio-py about ID 2.
+_PBKDF2_AES_GCM_ID = 2
+_minio_get_cipher = minio_crypto._get_cipher
+
+
+def _get_cipher(aead_id, key, nonce):
+    if aead_id == _PBKDF2_AES_GCM_ID:
+        return AES.new(key, AES.MODE_GCM, nonce)
+    return _minio_get_cipher(aead_id, key, nonce)
+
+
+class _DecryptReader(minio_crypto.DecryptReader):
+    def __init__(self, response, secret):
+        self._response = response
+        self._secret = secret
+        self._payload = None
+
+        header = self._response.read(41)
+        if len(header) != 41:
+            raise IOError("insufficient data")
+        self._salt = header[:32]
+        self._aead_id = header[32]
+        self._nonce = header[33:]
+        if self._aead_id == _PBKDF2_AES_GCM_ID:
+            self._key = hashlib.pbkdf2_hmac("sha256", self._secret, self._salt, 8192, 32)
+        else:
+            self._key = minio_crypto._generate_key(self._secret, self._salt)
+        padded_nonce = self._nonce + b"\x00\x00\x00\x00"
+        self._additional_data = minio_crypto._generate_additional_data(
+            self._aead_id, self._key, padded_nonce
+        )
+        self._chunk = b""
+        self._count = 0
+        self._is_closed = False
+
+
+minio_crypto._get_cipher = _get_cipher
+minio_crypto.DecryptReader = _DecryptReader
 
 # ----------------------- Configuration ----------------------- #
 
