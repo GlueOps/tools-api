@@ -80,9 +80,11 @@ pytest -s tests/integration
 ```bash
 TOOLS_API_URL=http://localhost:8080                          # optional, default shown
 STORAGE_TEST_CAPTAIN_DOMAIN=storage-timing-test.example.com  # optional, default shown
-STORAGE_TEST_OBJECT_COUNT=1000                               # optional, default shown
-STORAGE_TEST_OBJECT_SIZE_MB=1                                # optional, default shown
-STORAGE_TEST_UPLOAD_WORKERS=16                               # optional, default shown
+STORAGE_TEST_OBJECT_COUNT=100000                             # optional, default shown
+STORAGE_TEST_OBJECT_SIZE_KB=16                               # optional, default shown (~1.5 GiB total)
+STORAGE_TEST_UPLOAD_WORKERS=32                               # optional, default shown
+STORAGE_TEST_UPLOAD_MAX_RETRIES=8                            # optional, retries per object on 5xx
+STORAGE_TEST_API_TIMEOUT=3600                                # optional, seconds to wait for each API call
 ```
 
 The test is skipped when the `RUSTFS_*` env vars are not set.

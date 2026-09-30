@@ -32,21 +32,31 @@ pytestmark = pytest.mark.skipif(
 
 TOOLS_API_URL = os.getenv("TOOLS_API_URL", "http://localhost:8080")
 CAPTAIN_DOMAIN = os.getenv("STORAGE_TEST_CAPTAIN_DOMAIN", "storage-timing-test.example.com")
-OBJECT_COUNT = int(os.getenv("STORAGE_TEST_OBJECT_COUNT", "5000"))
-OBJECT_SIZE = int(float(os.getenv("STORAGE_TEST_OBJECT_SIZE_MB", "1")) * 1024 * 1024)
-UPLOAD_WORKERS = int(os.getenv("STORAGE_TEST_UPLOAD_WORKERS", "8"))
+OBJECT_COUNT = int(os.getenv("STORAGE_TEST_OBJECT_COUNT", "100000"))
+OBJECT_SIZE = int(float(os.getenv("STORAGE_TEST_OBJECT_SIZE_KB", "16")) * 1024)
+UPLOAD_WORKERS = int(os.getenv("STORAGE_TEST_UPLOAD_WORKERS", "32"))
 UPLOAD_MAX_RETRIES = int(os.getenv("STORAGE_TEST_UPLOAD_MAX_RETRIES", "8"))
+# How long to wait for one API call. The recreate call force-deletes the full
+# bucket before answering, so it can take a while with many objects.
+API_TIMEOUT = float(os.getenv("STORAGE_TEST_API_TIMEOUT", "3600"))
+PROGRESS_EVERY = max(1, OBJECT_COUNT // 20)  # print upload progress every 5%
 RETRYABLE_STATUSES = {500, 502, 503, 504}
 
 
 def _create_buckets():
     """Call the API and return (bucket_prefix, elapsed_seconds)."""
     started = time.monotonic()
-    response = httpx.post(
-        f"{TOOLS_API_URL}/v1/storage-buckets",
-        json={"captain_domain": CAPTAIN_DOMAIN},
-        timeout=900,
-    )
+    try:
+        response = httpx.post(
+            f"{TOOLS_API_URL}/v1/storage-buckets",
+            json={"captain_domain": CAPTAIN_DOMAIN},
+            timeout=API_TIMEOUT,
+        )
+    except httpx.TimeoutException:
+        pytest.fail(
+            f"POST /v1/storage-buckets did not answer within {API_TIMEOUT:g}s "
+            f"(raise STORAGE_TEST_API_TIMEOUT); check the API log for how far it got"
+        )
     elapsed = time.monotonic() - started
     assert response.status_code == 200, response.text
     match = re.search(r"bucket: (\S+)-thanos", response.text)
@@ -65,7 +75,7 @@ def _upload_client():
     """
     http_client = urllib3.PoolManager(
         maxsize=UPLOAD_WORKERS,
-        timeout=urllib3.Timeout(connect=300, read=300),
+        timeout=urllib3.Timeout(connect=30, read=120),
         cert_reqs="CERT_REQUIRED",
         ca_certs=os.environ.get("SSL_CERT_FILE") or certifi.where(),
         retries=urllib3.Retry(total=3, backoff_factor=0.2, status_forcelist=[]),
@@ -92,14 +102,28 @@ def _upload_objects(bucket_name):
     """Upload the test objects and return {error description: retry count}."""
     client = _upload_client()
     retries = {}
+    done = 0
     lock = threading.Lock()
+    started = time.monotonic()
+
+    def report_progress():
+        nonlocal done
+        with lock:
+            done += 1
+            if done % PROGRESS_EVERY and done != OBJECT_COUNT:
+                return
+            elapsed = time.monotonic() - started
+            rate = done / elapsed
+            eta = (OBJECT_COUNT - done) / rate
+            print(f"uploaded {done}/{OBJECT_COUNT} ({rate:.0f} obj/s, ~{eta:.0f}s left)", flush=True)
 
     def upload(i):
-        name = f"obj-{i:05d}"
+        name = f"obj-{i:06d}"
         data = os.urandom(OBJECT_SIZE)
         for attempt in range(UPLOAD_MAX_RETRIES + 1):
             try:
                 client.put_object(bucket_name, name, BytesIO(data), OBJECT_SIZE)
+                report_progress()
                 return
             except (S3Error, ServerError, InvalidResponseError) as e:
                 status = _error_status(e)
@@ -150,9 +174,9 @@ def test_recreate_buckets_with_data(client):
     total_mib = OBJECT_COUNT * OBJECT_SIZE / (1024 * 1024)
     print(
         f"\n--- storage-buckets recreate timing ---\n"
-        f"data:            {OBJECT_COUNT} objects x {OBJECT_SIZE / (1024 * 1024):g} MiB = {total_mib:g} MiB\n"
+        f"data:            {OBJECT_COUNT} objects x {OBJECT_SIZE / 1024:g} KiB = {total_mib:.0f} MiB\n"
         f"first create:    {first_elapsed:.2f}s\n"
-        f"upload:          {upload_elapsed:.2f}s ({total_mib / upload_elapsed:.1f} MiB/s)\n"
+        f"upload:          {upload_elapsed:.2f}s ({OBJECT_COUNT / upload_elapsed:.0f} obj/s, {total_mib / upload_elapsed:.1f} MiB/s)\n"
         f"upload retries:  {retries or 'none'}\n"
         f"recreate (full): {recreate_elapsed:.2f}s  <- delete phase alone is logged by the API as 'Deleted N bucket(s) in Xs'\n"
     )
