@@ -9,7 +9,6 @@ from minio import crypto as minio_crypto
 from minio.credentials import StaticProvider
 from minio.minioadmin import MinioAdmin
 from minio.error import S3Error
-from minio.deleteobjects import DeleteObject
 from minio.commonconfig import ENABLED, Filter
 from minio.lifecycleconfig import Expiration, LifecycleConfig, Rule
 import re
@@ -26,6 +25,18 @@ logger = glueops.setup_logging.configure(level=LOG_LEVEL)
 # FIPS builds of RustFS answer with ID 2: the same stream format, but with a
 # PBKDF2-SHA256 (8192 iterations) key and AES-GCM. Teach minio-py about ID 2.
 _PBKDF2_AES_GCM_ID = 2
+
+# The shim below patches minio-py private internals (minio is pinned in the
+# Pipfile for that reason). Fail at import time, not on the first admin call,
+# if a minio-py bump renamed or removed any of them.
+_PATCHED_MINIO_CRYPTO_ATTRS = ("_get_cipher", "DecryptReader", "_generate_key", "_generate_additional_data")
+_missing_minio_crypto_attrs = [a for a in _PATCHED_MINIO_CRYPTO_ATTRS if not hasattr(minio_crypto, a)]
+if _missing_minio_crypto_attrs:
+    raise ImportError(
+        f"minio.crypto no longer provides {', '.join(_missing_minio_crypto_attrs)}: "
+        "the RustFS admin crypto shim in storage.py must be updated for this minio-py version"
+    )
+
 _minio_get_cipher = minio_crypto._get_cipher
 
 
@@ -77,6 +88,7 @@ USE_SSL = os.getenv("RUSTFS_USE_SSL", "true").lower() != "false"
 UUID_LENGTH = 4                               # Length of UUID suffix (adjust as needed)
 UUID_FORMAT = 'hex'                            # Format of UUID ('hex' for hexadecimal)
 BUCKET_SUFFIXES = ["tempo", "loki", "thanos"]  # One bucket (and IAM user) per suffix
+BUCKET_NAME_ATTEMPTS = 10                      # Suffixes tried before giving up on finding free names
 
 # Retired buckets are emptied by a lifecycle rule instead of being deleted inline
 LIFECYCLE_RULE_ID = "tools-api-expire-all"
@@ -244,6 +256,38 @@ def generate_unique_bucket_name(base_name, length=UUID_LENGTH, fmt=UUID_FORMAT):
         suffix = uuid.uuid4().hex[:length]  # Default to hex
     return f"{base_name}-{suffix}"
 
+def generate_free_bucket_name(client, base_name):
+    """
+    Generates a unique bucket name whose buckets (one per suffix) do not exist yet.
+
+    The unique suffix is short, so it can recur and land on a previous
+    generation that is still expiring. ``make_bucket`` does not raise on an
+    existing bucket on RustFS, so reusing such a name would silently hand back
+    old data along with the lifecycle rule expiring everything written to it.
+
+    Args:
+        client (Minio): The MinIO client instance connected to RustFS.
+        base_name (str): The base name of the bucket.
+
+    Returns:
+        str: A unique bucket name none of whose buckets exist.
+    """
+    try:
+        for _ in range(BUCKET_NAME_ATTEMPTS):
+            candidate = generate_unique_bucket_name(base_name)
+            taken = [
+                name
+                for name in (f"{candidate}-{suffix}" for suffix in BUCKET_SUFFIXES)
+                if client.bucket_exists(name)
+            ]
+            if not taken:
+                return candidate
+            logger.warning(f"Bucket name '{candidate}' is already taken ({', '.join(taken)}). Regenerating...")
+    except S3Error as e:
+        logger.error(f"Error checking for existing buckets of '{base_name}': {e}")
+        raise
+    raise RuntimeError(f"No free bucket name found for '{base_name}' after {BUCKET_NAME_ATTEMPTS} attempts")
+
 def list_buckets(client):
     """
     Retrieves and returns a list of all buckets.
@@ -285,27 +329,6 @@ def find_buckets_of(base_name, buckets):
     """
     matching_buckets = [bucket.name for bucket in buckets if is_bucket_of(base_name, bucket.name)]
     return matching_buckets
-
-def delete_all_objects(client, bucket_name):
-    """
-    Deletes all objects within the specified bucket.
-    
-    Args:
-        client (Minio): The MinIO client instance connected to RustFS.
-        bucket_name (str): The name of the bucket from which to delete objects.
-    """
-    try:
-        objects = client.list_objects(bucket_name, recursive=True)
-        objects_to_delete = (DeleteObject(obj.object_name) for obj in objects)
-        delete_results = client.remove_objects(bucket_name, objects_to_delete)
-        for result in delete_results:
-            if result.status_code == 204:
-                logger.info(f"Deleted object: {result.object_name}")
-            elif result.status_code != 204:
-                logger.error(f"Failed to delete object: {result.object_name}, Status Code: {result.status_code}")
-    except S3Error as e:
-        logger.error(f"Error deleting objects in bucket '{bucket_name}': {e}")
-        raise
 
 def is_bucket_empty(client, bucket_name):
     """
@@ -425,14 +448,23 @@ def create_bucket_user(admin, bucket_name):
     }
     access_key = secrets.token_hex(10)
     secret_key = secrets.token_hex(20)
+    user_created = False
     try:
         admin.policy_add(bucket_name, policy=policy)
         admin.user_add(access_key, secret_key)
+        user_created = True
         admin.attach_policy([bucket_name], user=access_key)
         logger.info(f"IAM user '{access_key}' created for bucket '{bucket_name}'.")
         return access_key, secret_key
     except Exception as e:
         logger.error(f"Error creating IAM user for bucket '{bucket_name}': {e}")
+        if user_created:
+            # A user without the policy is never found again by delete_bucket_users
+            try:
+                admin.user_remove(access_key)
+                logger.info(f"Removed half-created IAM user '{access_key}'.")
+            except Exception as cleanup_error:
+                logger.error(f"Error removing half-created IAM user '{access_key}': {cleanup_error}")
         raise
 
 def delete_bucket_users(admin, base_name):
@@ -499,8 +531,8 @@ def create_all_buckets(captain_domain):
     )
 
     create_started = time.monotonic()
-    # Generate a unique bucket name
-    unique_bucket_name = generate_unique_bucket_name(base_bucket_name)
+    # Generate a unique bucket name that no existing bucket uses
+    unique_bucket_name = generate_free_bucket_name(client, base_bucket_name)
     logger.info(f"Generated unique bucket name: {unique_bucket_name}")
     
     # Create the new bucket

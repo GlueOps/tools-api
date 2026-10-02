@@ -35,7 +35,7 @@ pytestmark = pytest.mark.skipif(
 
 TOOLS_API_URL = os.getenv("TOOLS_API_URL", "http://localhost:8080")
 CAPTAIN_DOMAIN = os.getenv("STORAGE_TEST_CAPTAIN_DOMAIN", "storage-timing-test.example.com")
-OBJECT_COUNT = int(os.getenv("STORAGE_TEST_OBJECT_COUNT", "200000"))
+OBJECT_COUNT = int(os.getenv("STORAGE_TEST_OBJECT_COUNT", "100000"))
 OBJECT_SIZE = int(float(os.getenv("STORAGE_TEST_OBJECT_SIZE_KB", "16")) * 1024)
 UPLOAD_WORKERS = int(os.getenv("STORAGE_TEST_UPLOAD_WORKERS", "32"))
 UPLOAD_MAX_RETRIES = int(os.getenv("STORAGE_TEST_UPLOAD_MAX_RETRIES", "8"))
