@@ -9,7 +9,7 @@
     "/v1/storage-buckets": {
       "post": {
         "summary": "Recreate monitoring storage buckets (destructive)",
-        "description": "Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).\n\nNote: this can be a DESTRUCTIVE operation.\nFor the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.",
+        "description": "Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).\n\nNote: this can be a DESTRUCTIVE operation.\nFor the provided captain_domain, this will retire the existing storage buckets and then create new/empty ones for loki, tempo, and thanos.\nRetired buckets lose their credentials immediately. Empty ones are DELETED right away; the others get a lifecycle rule that\nexpires their data after 1 day, and are deleted the next time this is called once they are empty.",
         "operationId": "hello_v1_storage_buckets_post",
         "requestBody": {
           "content": {
