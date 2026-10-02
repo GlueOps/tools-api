@@ -152,7 +152,7 @@ def client():
     # Remove whatever the test left behind so repeated runs start clean
     base_name = storage.make_compliant_name(CAPTAIN_DOMAIN)
     storage.delete_bucket_users(storage.initialize_rustfs_admin_client(), base_name)
-    for bucket_name in storage.find_buckets_containing(base_name, storage.list_buckets(client)):
+    for bucket_name in storage.find_buckets_of(base_name, storage.list_buckets(client)):
         # The API only expires non-empty buckets; force delete them here.
         # remove_bucket() cannot send extra headers, hence the lower-level _execute.
         client._execute("DELETE", bucket_name, headers={"x-rustfs-force-delete": "true"})

@@ -261,18 +261,29 @@ def list_buckets(client):
         logger.error(f"Error listing buckets: {e}")
         raise
 
-def find_buckets_containing(base_name, buckets):
+def is_bucket_of(base_name, bucket_name):
     """
-    Identifies and returns a list of bucket names that contain the base name.
-    
+    Returns True if the bucket name was generated for exactly this base name,
+    i.e. it is ``<base_name>-<unique suffix>-<tempo|loki|thanos>``.
+
+    A substring match is not enough: the base name of "prod.example.com" is
+    contained in the bucket names of "nonprod.example.com".
+    """
+    pattern = rf"{re.escape(base_name)}-[0-9a-f]{{{UUID_LENGTH}}}-({'|'.join(BUCKET_SUFFIXES)})"
+    return re.fullmatch(pattern, bucket_name) is not None
+
+def find_buckets_of(base_name, buckets):
+    """
+    Identifies and returns a list of bucket names that belong to the base name.
+
     Args:
-        base_name (str): The base name to search for within bucket names.
+        base_name (str): The base name the buckets were generated for.
         buckets (list): A list of bucket objects.
-    
+
     Returns:
-        list: A list of bucket names containing the base name.
+        list: A list of bucket names belonging to the base name.
     """
-    matching_buckets = [bucket.name for bucket in buckets if base_name in bucket.name]
+    matching_buckets = [bucket.name for bucket in buckets if is_bucket_of(base_name, bucket.name)]
     return matching_buckets
 
 def delete_all_objects(client, bucket_name):
@@ -426,22 +437,23 @@ def create_bucket_user(admin, bucket_name):
 
 def delete_bucket_users(admin, base_name):
     """
-    Deletes the IAM users and policies previously created for buckets containing the base name.
+    Deletes the IAM users and policies previously created for the buckets of the base name.
 
     Args:
         admin (MinioAdmin): The MinIO admin client instance connected to RustFS.
-        base_name (str): The base name to search for within policy names.
+        base_name (str): The base name the buckets (and so the policies) were generated for.
     """
     try:
         users = json.loads(admin.user_list() or "{}")
         for access_key, info in users.items():
-            if base_name in (info.get("policyName") or ""):
+            policy_names = (info.get("policyName") or "").split(",")
+            if any(is_bucket_of(base_name, name.strip()) for name in policy_names):
                 admin.user_remove(access_key)
                 logger.info(f"Deleted IAM user '{access_key}' ({info.get('policyName')}).")
 
         policies = json.loads(admin.policy_list() or "{}")
         for policy_name in policies:
-            if base_name in policy_name:
+            if is_bucket_of(base_name, policy_name):
                 admin.policy_remove(policy_name)
                 logger.info(f"Deleted IAM policy '{policy_name}'.")
     except Exception as e:
@@ -450,7 +462,7 @@ def delete_bucket_users(admin, base_name):
 
 def create_all_buckets(captain_domain):
     """
-    Manages buckets by retiring existing ones containing the base name and creating a new unique bucket.
+    Manages buckets by retiring the existing ones of this exact captain domain and creating a new unique bucket.
 
     Retired buckets that are empty are deleted; the others get a lifecycle rule
     that expires their objects, and are deleted on a later run once empty.
@@ -463,7 +475,7 @@ def create_all_buckets(captain_domain):
     logger.info("Listing all existing buckets...")
     buckets = list_buckets(client)
     
-    # Find buckets containing the base name
+    # Find the buckets of this exact captain domain
     base_bucket_name = make_compliant_name(captain_domain)
 
     retire_started = time.monotonic()
@@ -471,16 +483,16 @@ def create_all_buckets(captain_domain):
     # Delete IAM users/policies of the previous buckets (also stops writes to them)
     delete_bucket_users(admin, base_bucket_name)
 
-    matching_buckets = find_buckets_containing(base_bucket_name, buckets)
+    matching_buckets = find_buckets_of(base_bucket_name, buckets)
 
     # Delete each empty matching bucket, expire the contents of the others
     deleted = 0
     if matching_buckets:
-        logger.info(f"Found {len(matching_buckets)} bucket(s) containing '{base_bucket_name}'. Retiring them...")
+        logger.info(f"Found {len(matching_buckets)} bucket(s) of '{base_bucket_name}'. Retiring them...")
         for bucket_name in matching_buckets:
             deleted += retire_bucket(client, bucket_name)
     else:
-        logger.info(f"No existing buckets contain the base name '{base_bucket_name}'.")
+        logger.info(f"No existing buckets belong to the base name '{base_bucket_name}'.")
     logger.info(
         f"Retired {len(matching_buckets)} bucket(s) in {time.monotonic() - retire_started:.2f}s "
         f"({deleted} deleted, {len(matching_buckets) - deleted} left to expire)"
