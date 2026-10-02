@@ -10,6 +10,8 @@ from minio.credentials import StaticProvider
 from minio.minioadmin import MinioAdmin
 from minio.error import S3Error
 from minio.deleteobjects import DeleteObject
+from minio.commonconfig import ENABLED, Filter
+from minio.lifecycleconfig import Expiration, LifecycleConfig, Rule
 import re
 import os
 import yaml
@@ -75,6 +77,10 @@ USE_SSL = os.getenv("RUSTFS_USE_SSL", "true").lower() != "false"
 UUID_LENGTH = 4                               # Length of UUID suffix (adjust as needed)
 UUID_FORMAT = 'hex'                            # Format of UUID ('hex' for hexadecimal)
 BUCKET_SUFFIXES = ["tempo", "loki", "thanos"]  # One bucket (and IAM user) per suffix
+
+# Retired buckets are emptied by a lifecycle rule instead of being deleted inline
+LIFECYCLE_RULE_ID = "tools-api-expire-all"
+LIFECYCLE_EXPIRATION_DAYS = 1                  # Minimum duration a lifecycle rule allows
 
 # ----------------------- Functions ----------------------- #
 
@@ -290,24 +296,72 @@ def delete_all_objects(client, bucket_name):
         logger.error(f"Error deleting objects in bucket '{bucket_name}': {e}")
         raise
 
-def delete_bucket(client, bucket_name):
+def is_bucket_empty(client, bucket_name):
     """
-    Deletes the specified bucket and all its contents.
-
-    Uses RustFS's force delete (``x-rustfs-force-delete``) so the server wipes
-    the contents in a single request. minio-py's ``remove_bucket()`` cannot
-    send extra headers, hence the lower-level ``_execute``.
+    Returns True if the specified bucket holds no objects.
 
     Args:
         client (Minio): The MinIO client instance connected to RustFS.
-        bucket_name (str): The name of the bucket to delete.
+        bucket_name (str): The name of the bucket to check.
     """
     try:
-        client._execute("DELETE", bucket_name, headers={"x-rustfs-force-delete": "true"})
-        logger.info(f"Bucket '{bucket_name}' has been deleted successfully.")
+        return next(iter(client.list_objects(bucket_name, recursive=True)), None) is None
     except S3Error as e:
-        logger.error(f"Error removing bucket '{bucket_name}': {e}")
+        logger.error(f"Error listing objects in bucket '{bucket_name}': {e}")
         raise
+
+def expire_bucket(client, bucket_name):
+    """
+    Sets a lifecycle rule expiring every object in the bucket after the minimum duration.
+
+    RustFS then empties the bucket in the background, so the caller does not
+    have to wait for a large bucket to be wiped. The emptied bucket is removed
+    by ``retire_bucket`` on a later run.
+
+    Args:
+        client (Minio): The MinIO client instance connected to RustFS.
+        bucket_name (str): The name of the bucket to expire.
+    """
+    config = LifecycleConfig(
+        [
+            Rule(
+                ENABLED,
+                rule_filter=Filter(prefix=""),
+                rule_id=LIFECYCLE_RULE_ID,
+                expiration=Expiration(days=LIFECYCLE_EXPIRATION_DAYS),
+            )
+        ]
+    )
+    try:
+        client.set_bucket_lifecycle(bucket_name, config)
+        logger.info(f"Bucket '{bucket_name}' set to expire its objects after {LIFECYCLE_EXPIRATION_DAYS} day(s).")
+    except S3Error as e:
+        logger.error(f"Error setting lifecycle on bucket '{bucket_name}': {e}")
+        raise
+
+def retire_bucket(client, bucket_name):
+    """
+    Deletes the specified bucket if it is empty, otherwise leaves its contents to a lifecycle rule.
+
+    Args:
+        client (Minio): The MinIO client instance connected to RustFS.
+        bucket_name (str): The name of the bucket to retire.
+
+    Returns:
+        bool: True if the bucket was deleted, False if it was left to expire.
+    """
+    try:
+        if is_bucket_empty(client, bucket_name):
+            client.remove_bucket(bucket_name)
+            logger.info(f"Bucket '{bucket_name}' was empty and has been deleted.")
+            return True
+    except S3Error as e:
+        # An object landed between the emptiness check and the delete
+        if e.code != "BucketNotEmpty":
+            logger.error(f"Error removing bucket '{bucket_name}': {e}")
+            raise
+    expire_bucket(client, bucket_name)
+    return False
 
 def create_bucket(client, bucket_name):
     """
@@ -396,7 +450,10 @@ def delete_bucket_users(admin, base_name):
 
 def create_all_buckets(captain_domain):
     """
-    Manages buckets by deleting existing ones containing the base name and creating a new unique bucket.
+    Manages buckets by retiring existing ones containing the base name and creating a new unique bucket.
+
+    Retired buckets that are empty are deleted; the others get a lifecycle rule
+    that expires their objects, and are deleted on a later run once empty.
     """
     # Initialize RustFS clients
     client = initialize_rustfs_client()
@@ -409,21 +466,25 @@ def create_all_buckets(captain_domain):
     # Find buckets containing the base name
     base_bucket_name = make_compliant_name(captain_domain)
 
-    delete_started = time.monotonic()
+    retire_started = time.monotonic()
 
-    # Delete IAM users/policies of the previous buckets
+    # Delete IAM users/policies of the previous buckets (also stops writes to them)
     delete_bucket_users(admin, base_bucket_name)
 
     matching_buckets = find_buckets_containing(base_bucket_name, buckets)
-    
-    # Delete each matching bucket
+
+    # Delete each empty matching bucket, expire the contents of the others
+    deleted = 0
     if matching_buckets:
-        logger.info(f"Found {len(matching_buckets)} bucket(s) containing '{base_bucket_name}'. Deleting them...")
+        logger.info(f"Found {len(matching_buckets)} bucket(s) containing '{base_bucket_name}'. Retiring them...")
         for bucket_name in matching_buckets:
-            delete_bucket(client, bucket_name)
+            deleted += retire_bucket(client, bucket_name)
     else:
         logger.info(f"No existing buckets contain the base name '{base_bucket_name}'.")
-    logger.info(f"Deleted {len(matching_buckets)} bucket(s) in {time.monotonic() - delete_started:.2f}s")
+    logger.info(
+        f"Retired {len(matching_buckets)} bucket(s) in {time.monotonic() - retire_started:.2f}s "
+        f"({deleted} deleted, {len(matching_buckets) - deleted} left to expire)"
+    )
 
     create_started = time.monotonic()
     # Generate a unique bucket name

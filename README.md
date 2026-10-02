@@ -66,7 +66,7 @@ K3D_LB_VM_IMAGE=tools-api-k3d-lb-chisel-debian-13-amd64  # optional, default sho
 
 ## Integration test
 
-`tests/integration/test_storage_buckets.py` creates the storage buckets through the API, fills the loki bucket with data, calls the endpoint again for the same captain domain, and prints how long the recreate took. The API also logs the time the delete step took on its own (`Deleted N bucket(s) in Xs`).
+`tests/integration/test_storage_buckets.py` creates the storage buckets through the API, fills the loki bucket with data, calls the endpoint again for the same captain domain, and prints how long the recreate took. It checks that the old empty buckets were deleted and that the old loki bucket was kept with a lifecycle rule expiring its data. The API also logs the time the retire step took on its own (`Retired N bucket(s) in Xs`).
 
 Start RustFS and the API with the same `RUSTFS_*` env vars (the test uses them to upload the data), then:
 

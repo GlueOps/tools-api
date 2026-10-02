@@ -1,6 +1,9 @@
 """
 Integration test: recreate storage buckets that already hold data, and time it.
 
+The old empty buckets must be deleted; the old bucket holding data must be
+kept with a lifecycle rule expiring its contents.
+
 Needs a running tools-api and RustFS, with the same RUSTFS_* env vars the API
 uses (the admin credentials are used to upload the test objects). Run with:
 
@@ -32,12 +35,12 @@ pytestmark = pytest.mark.skipif(
 
 TOOLS_API_URL = os.getenv("TOOLS_API_URL", "http://localhost:8080")
 CAPTAIN_DOMAIN = os.getenv("STORAGE_TEST_CAPTAIN_DOMAIN", "storage-timing-test.example.com")
-OBJECT_COUNT = int(os.getenv("STORAGE_TEST_OBJECT_COUNT", "100000"))
+OBJECT_COUNT = int(os.getenv("STORAGE_TEST_OBJECT_COUNT", "200000"))
 OBJECT_SIZE = int(float(os.getenv("STORAGE_TEST_OBJECT_SIZE_KB", "16")) * 1024)
 UPLOAD_WORKERS = int(os.getenv("STORAGE_TEST_UPLOAD_WORKERS", "32"))
 UPLOAD_MAX_RETRIES = int(os.getenv("STORAGE_TEST_UPLOAD_MAX_RETRIES", "8"))
-# How long to wait for one API call. The recreate call force-deletes the full
-# bucket before answering, so it can take a while with many objects.
+# How long to wait for one API call. The recreate call only sets a lifecycle
+# rule on the full bucket, so it should answer quickly whatever the object count.
 API_TIMEOUT = float(os.getenv("STORAGE_TEST_API_TIMEOUT", "3600"))
 PROGRESS_EVERY = max(1, OBJECT_COUNT // 20)  # print upload progress every 5%
 RETRYABLE_STATUSES = {500, 502, 503, 504}
@@ -150,7 +153,9 @@ def client():
     base_name = storage.make_compliant_name(CAPTAIN_DOMAIN)
     storage.delete_bucket_users(storage.initialize_rustfs_admin_client(), base_name)
     for bucket_name in storage.find_buckets_containing(base_name, storage.list_buckets(client)):
-        storage.delete_bucket(client, bucket_name)
+        # The API only expires non-empty buckets; force delete them here.
+        # remove_bucket() cannot send extra headers, hence the lower-level _execute.
+        client._execute("DELETE", bucket_name, headers={"x-rustfs-force-delete": "true"})
 
 
 def test_recreate_buckets_with_data(client):
@@ -168,8 +173,19 @@ def test_recreate_buckets_with_data(client):
     assert new_prefix != old_prefix
 
     for suffix in storage.BUCKET_SUFFIXES:
-        assert not client.bucket_exists(f"{old_prefix}-{suffix}")
         assert client.bucket_exists(f"{new_prefix}-{suffix}")
+
+    # The empty old buckets are deleted right away
+    for suffix in storage.BUCKET_SUFFIXES:
+        if suffix != "loki":
+            assert not client.bucket_exists(f"{old_prefix}-{suffix}")
+
+    # The old bucket holding data is kept, with a rule expiring its contents
+    assert client.bucket_exists(loki_bucket)
+    rules = client.get_bucket_lifecycle(loki_bucket).rules
+    assert [(r.rule_id, r.status, r.expiration.days) for r in rules] == [
+        (storage.LIFECYCLE_RULE_ID, "Enabled", storage.LIFECYCLE_EXPIRATION_DAYS)
+    ]
 
     total_mib = OBJECT_COUNT * OBJECT_SIZE / (1024 * 1024)
     print(
@@ -178,5 +194,5 @@ def test_recreate_buckets_with_data(client):
         f"first create:    {first_elapsed:.2f}s\n"
         f"upload:          {upload_elapsed:.2f}s ({OBJECT_COUNT / upload_elapsed:.0f} obj/s, {total_mib / upload_elapsed:.1f} MiB/s)\n"
         f"upload retries:  {retries or 'none'}\n"
-        f"recreate (full): {recreate_elapsed:.2f}s  <- delete phase alone is logged by the API as 'Deleted N bucket(s) in Xs'\n"
+        f"recreate (full): {recreate_elapsed:.2f}s  <- retire phase alone is logged by the API as 'Retired N bucket(s) in Xs'\n"
     )
