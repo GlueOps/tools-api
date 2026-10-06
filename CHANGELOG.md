@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.0](https://github.com/GlueOps/tools-api/compare/v0.8.0...v0.9.0) (2026-10-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* use RustFS credentials for storage buckets ([#111](https://github.com/GlueOps/tools-api/issues/111))
+
+### Code Refactoring
+
+* use RustFS credentials for storage buckets ([#111](https://github.com/GlueOps/tools-api/issues/111)) ([86724e1](https://github.com/GlueOps/tools-api/commit/86724e14346d69aa0aa55c24df1b948c759d6d5f))
+
 ## [0.8.0](https://github.com/GlueOps/tools-api/compare/v0.7.2...v0.8.0) (2026-09-22)
 
 
