@@ -6,7 +6,7 @@ This file provides guidance to AI coding assistants when working with the `tools
 
 `tools` is a Go CLI that wraps the GlueOps Tools API. It authenticates via Dex device code flow through oauth2-proxy and self-updates when the API version changes.
 
-All Go builds use Docker (`golang:1.26-alpine`, pinned by digest in the Makefile) — no local Go toolchain is required.
+All Go builds use Docker (`golang:1.24-alpine`, pinned by digest in the Makefile) — no local Go toolchain is required.
 
 ## Build
 
@@ -37,7 +37,7 @@ make generate
 
 This does three things:
 1. Builds the tools-api Docker image and exports the OpenAPI spec to `openapi.json`
-2. Runs `oapi-codegen` (pinned to v2.8.0) via Docker to regenerate `api/generated.go`
+2. Runs `oapi-codegen` (pinned to v2.6.0) via Docker to regenerate `api/generated.go`
 3. Copies `openapi.json` to `internal/spec/openapi.json` for embedding
 
 The generated client (`api/generated.go`) and both copies of `openapi.json` are committed to the repo.
@@ -65,7 +65,8 @@ cli/
 │   ├── aws.go                      # tools aws setup-credentials, aws nuke-account
 │   ├── nuke.go                     # tools nuke captain-domain-data
 │   ├── github.go                   # tools github reset-org, github workflow-status
-│   ├── k3d_lb.go                   # tools k3d-lb-nodes create, k3d-lb-nodes delete
+│   ├── chisel.go                   # tools chisel create, chisel delete
+│   ├── opsgenie.go                 # tools opsgenie create
 │   └── captain_manifests.go        # tools captain-manifests generate
 └── internal/
     ├── auth/
@@ -115,4 +116,8 @@ cli/
 
 ## CI/CD
 
-There is no CLI release automation: the old `cli_release.yaml` workflow (release per push, tagged with `github.ref_name` — which shadowed the `main` branch with a `main` tag) was removed from the repo and is disabled repo-wide in Actions. Build binaries manually with `make build-all` (cross-compiles linux/darwin × amd64/arm64 via Docker; version injected via ldflags).
+`.github/workflows/cli_release.yaml` builds CLI binaries on every push:
+- Cross-compiles for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64 via Docker
+- Uploads binaries as workflow artifacts
+- Creates a GitHub Release tagged with `github.ref_name` (rolling `main` release for branch pushes, versioned releases for tag pushes)
+- Version is injected via ldflags from the git ref

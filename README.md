@@ -29,62 +29,9 @@ The CLI self-updates automatically when the API version changes. See [`cli/`](cl
 ```bash
 AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY
 AWS_GLUEOPS_ROCKS_ORG_SECRET_KEY
+HCLOUD_TOKEN
 GITHUB_TOKEN
-RUSTFS_ENDPOINT=rustfs.glueopshosted.rocks   # host[:port], no scheme
-RUSTFS_ACCESS_KEY_ID              # admin creds: used to manage buckets and per-bucket IAM users
-RUSTFS_SECRET_KEY
-RUSTFS_REGION=us-east-1           # optional, default: us-east-1
-RUSTFS_USE_SSL=true               # optional, default: true
+MINIO_S3_ACCESS_KEY_ID
+MINIO_S3_SECRET_KEY
+HETZNER_STORAGE_REGION=hel1
 ```
-
-### Required for `/v1/k3d-lb-nodes` (Chisel nodes on Proxmox via Waggle):
-
-```bash
-# Waggle (placement oracle) — datacenter and slot must already exist in Waggle
-WAGGLE_API_URL=                   # base URL of the Waggle server (with or without /api/v1)
-WAGGLE_API_KEY=                   # org API key (wgl_...)
-WAGGLE_DATACENTER_NAME=           # name of the pre-configured datacenter
-WAGGLE_SLOT_NAME=                 # name of the pre-configured slot (VM size)
-
-# Proxmox (VM provisioning)
-PROXMOX_HOST=
-PROXMOX_PORT=8006                 # optional, default: 8006
-PROXMOX_TOKEN_ID=                 # e.g. automation@pve!tools-api
-PROXMOX_TOKEN_SECRET=
-PROXMOX_STORAGE=                  # storage for VM disks, cloud-init ISOs, and cached images
-PROXMOX_BRIDGE=vmbr_public        # optional, default: vmbr_public (the public bridge)
-PROXMOX_VLAN_TAG=                 # optional, omit for no VLAN tag (untagged on the bridge)
-PROXMOX_VERIFY_SSL=true           # optional, default: true
-PROXMOX_DOWNLOAD_SERVER_URL=https://github.com/GlueOps/proxmox-images-chisel/releases/latest/download
-                                  # base URL hosting <image>.qcow2 (and optionally SHA256SUMS, which is
-                                  #  used to verify the download and to key the per-node image cache)
-                                  # (the PVE node downloads <base>/<image>.qcow2 itself, so it needs
-                                  #  internet egress; point at an internal mirror to avoid that)
-PROXMOX_IMAGE_DOWNLOAD_TIMEOUT=1800  # optional, seconds to wait for image downloads (default: 1800)
-K3D_LB_VM_IMAGE=tools-api-k3d-lb-chisel-debian-13-amd64  # optional, default shown
-```
-
-## Integration test
-
-`tests/integration/test_storage_buckets.py` creates the storage buckets through the API, fills the loki bucket with data, calls the endpoint again for the same captain domain, and prints how long the recreate took. It checks that the old empty buckets were deleted and that the old loki bucket was kept with a lifecycle rule expiring its data. The API also logs the time the retire step took on its own (`Retired N bucket(s) in Xs`).
-
-Start RustFS and the API with the same `RUSTFS_*` env vars (the test uses them to upload the data), then:
-
-```bash
-docker run -d --name rustfs -p 9000:9000 -p 9001:9001 \
-  -e RUSTFS_ACCESS_KEY=rustfsadmin -e RUSTFS_SECRET_KEY=rustfsadmin rustfs/rustfs:latest
-pipenv install --dev
-pytest -s tests/integration
-```
-
-```bash
-TOOLS_API_URL=http://localhost:8080                          # optional, default shown
-STORAGE_TEST_CAPTAIN_DOMAIN=storage-timing-test.example.com  # optional, default shown
-STORAGE_TEST_OBJECT_COUNT=100000                             # optional, default shown
-STORAGE_TEST_OBJECT_SIZE_KB=16                               # optional, default shown (~1.5 GiB total)
-STORAGE_TEST_UPLOAD_WORKERS=32                               # optional, default shown
-STORAGE_TEST_UPLOAD_MAX_RETRIES=8                            # optional, retries per object on 5xx
-STORAGE_TEST_API_TIMEOUT=3600                                # optional, seconds to wait for each API call
-```
-
-The test is skipped when the `RUSTFS_*` env vars are not set.
