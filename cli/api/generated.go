@@ -583,7 +583,9 @@ type ClientInterface interface {
 	// Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).
 	//
 	// Note: this can be a DESTRUCTIVE operation.
-	// For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.
+	// For the provided captain_domain, this will retire the existing storage buckets and then create new/empty ones for loki, tempo, and thanos.
+	// Retired buckets lose their credentials immediately. Empty ones are DELETED right away; the others get a lifecycle rule that
+	// expires their data after 1 day, and are deleted the next time this is called once they are empty.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -595,7 +597,9 @@ type ClientInterface interface {
 	// Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).
 	//
 	// Note: this can be a DESTRUCTIVE operation.
-	// For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.
+	// For the provided captain_domain, this will retire the existing storage buckets and then create new/empty ones for loki, tempo, and thanos.
+	// Retired buckets lose their credentials immediately. Empty ones are DELETED right away; the others get a lifecycle rule that
+	// expires their data after 1 day, and are deleted the next time this is called once they are empty.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -1110,7 +1114,9 @@ func (c *Client) CreateCredentialsForAwsCaptainAccountV1SetupAwsAccountCredentia
 // Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).
 //
 // Note: this can be a DESTRUCTIVE operation.
-// For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.
+// For the provided captain_domain, this will retire the existing storage buckets and then create new/empty ones for loki, tempo, and thanos.
+// Retired buckets lose their credentials immediately. Empty ones are DELETED right away; the others get a lifecycle rule that
+// expires their data after 1 day, and are deleted the next time this is called once they are empty.
 //
 // Takes any type of body and a specified content type.
 //
@@ -1132,7 +1138,9 @@ func (c *Client) HelloV1StorageBucketsPostWithBody(ctx context.Context, contentT
 // Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).
 //
 // Note: this can be a DESTRUCTIVE operation.
-// For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.
+// For the provided captain_domain, this will retire the existing storage buckets and then create new/empty ones for loki, tempo, and thanos.
+// Retired buckets lose their credentials immediately. Empty ones are DELETED right away; the others get a lifecycle rule that
+// expires their data after 1 day, and are deleted the next time this is called once they are empty.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -1960,7 +1968,9 @@ type ClientWithResponsesInterface interface {
 	// Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).
 	//
 	// Note: this can be a DESTRUCTIVE operation.
-	// For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.
+	// For the provided captain_domain, this will retire the existing storage buckets and then create new/empty ones for loki, tempo, and thanos.
+	// Retired buckets lose their credentials immediately. Empty ones are DELETED right away; the others get a lifecycle rule that
+	// expires their data after 1 day, and are deleted the next time this is called once they are empty.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -1972,7 +1982,9 @@ type ClientWithResponsesInterface interface {
 	// Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).
 	//
 	// Note: this can be a DESTRUCTIVE operation.
-	// For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.
+	// For the provided captain_domain, this will retire the existing storage buckets and then create new/empty ones for loki, tempo, and thanos.
+	// Retired buckets lose their credentials immediately. Empty ones are DELETED right away; the others get a lifecycle rule that
+	// expires their data after 1 day, and are deleted the next time this is called once they are empty.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -2926,7 +2938,9 @@ func (c *ClientWithResponses) CreateCredentialsForAwsCaptainAccountV1SetupAwsAcc
 // Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).
 //
 // Note: this can be a DESTRUCTIVE operation.
-// For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.
+// For the provided captain_domain, this will retire the existing storage buckets and then create new/empty ones for loki, tempo, and thanos.
+// Retired buckets lose their credentials immediately. Empty ones are DELETED right away; the others get a lifecycle rule that
+// expires their data after 1 day, and are deleted the next time this is called once they are empty.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -2944,7 +2958,9 @@ func (c *ClientWithResponses) HelloV1StorageBucketsPostWithBodyWithResponse(ctx 
 // Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).
 //
 // Note: this can be a DESTRUCTIVE operation.
-// For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.
+// For the provided captain_domain, this will retire the existing storage buckets and then create new/empty ones for loki, tempo, and thanos.
+// Retired buckets lose their credentials immediately. Empty ones are DELETED right away; the others get a lifecycle rule that
+// expires their data after 1 day, and are deleted the next time this is called once they are empty.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //

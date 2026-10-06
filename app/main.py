@@ -154,7 +154,9 @@ async def hello(request: StorageBucketsRequest):
         Create/re-create the storage buckets used by V2 of our monitoring stack (the Otel based one).
 
         Note: this can be a DESTRUCTIVE operation.
-        For the provided captain_domain, this will DELETE and then create new/empty storage buckets for loki, tempo, and thanos.
+        For the provided captain_domain, this will retire the existing storage buckets and then create new/empty ones for loki, tempo, and thanos.
+        Retired buckets lose their credentials immediately. Empty ones are DELETED right away; the others get a lifecycle rule that
+        expires their data after 1 day, and are deleted the next time this is called once they are empty.
     """
     return storage.create_all_buckets(request.captain_domain)
 
