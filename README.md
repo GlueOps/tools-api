@@ -64,6 +64,24 @@ PROXMOX_IMAGE_DOWNLOAD_TIMEOUT=1800  # optional, seconds to wait for image downl
 K3D_LB_VM_IMAGE=tools-api-k3d-lb-chisel-debian-13-amd64  # optional, default shown
 ```
 
+### Optional: reach Proxmox over Tailscale
+
+When `TS_AUTHKEY` is set, the container's entrypoint (`entrypoint.sh`) joins the tailnet using userspace networking (no `NET_ADMIN` or `/dev/net/tun` needed) and forwards `127.0.0.1:$PROXMOX_PORT` to `$PROXMOX_HOST:$PROXMOX_PORT` over Tailscale (`socat` + `tailscale nc`), where `PROXMOX_HOST` is the Proxmox host's Tailscale IPv4 address. The API is then pointed at `127.0.0.1`; all other traffic (GitHub, AWS, RustFS, Waggle) does not go through Tailscale. Without `TS_AUTHKEY` the container just runs `fastapi run` and uses `PROXMOX_HOST` directly.
+
+```bash
+TS_AUTHKEY=                       # OAuth client secret (tskey-client-...) recommended, or a reusable, tagged auth key
+PROXMOX_HOST=                     # with TS_AUTHKEY: Tailscale IPv4 of the Proxmox host (100.x.y.z)
+TS_HOSTNAME=tools-api             # optional, default shown
+TS_EXTRA_ARGS=                    # optional, extra flags for `tailscale up`; required with an OAuth client secret: --advertise-tags=tag:tools-api
+PROXMOX_VERIFY_SSL=false          # only with the tunnel: the cert won't match 127.0.0.1, and WireGuard already authenticates the host
+```
+
+State is in memory, so every container start logs in again with `TS_AUTHKEY`, and the node is always ephemeral (it is removed from the tailnet when the container stops). Auth keys expire after at most 90 days, after which the next restart fails. An OAuth client secret (with the `auth_keys` scope and ownership of the tag) does not expire, which is why it is the recommended option. With a plain auth key, use a reusable, tagged key and rotate it before it expires.
+
+`PROXMOX_HOST` must be the Proxmox host's Tailscale `100.x` address: any other address is dialed directly instead of over Tailscale, and with `PROXMOX_VERIFY_SSL=false` that connection is unprotected.
+
+The node runs with `--shields-up`, so other tailnet devices cannot connect to the container. The tailnet ACLs are still the real boundary: allow `tag:tools-api` to reach only the Proxmox host on `PROXMOX_PORT`, and grant nothing inbound to it. If `tailscaled`, the forwarder, or the API exits, the container exits so it can be restarted.
+
 ## Integration test
 
 `tests/integration/test_storage_buckets.py` creates the storage buckets through the API, fills the loki bucket with data, calls the endpoint again for the same captain domain, and prints how long the recreate took. It checks that the old empty buckets were deleted and that the old loki bucket was kept with a lifecycle rule expiring its data. The API also logs the time the retire step took on its own (`Retired N bucket(s) in Xs`).
