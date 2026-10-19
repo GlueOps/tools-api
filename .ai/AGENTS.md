@@ -32,7 +32,7 @@ Required environment variables: `AWS_GLUEOPS_ROCKS_ORG_ACCESS_KEY`, `AWS_GLUEOPS
 docker build -t tools-api .
 ```
 
-The Dockerfile uses `python:3.14-slim` as base, installs dependencies via pipenv (`--system`), and accepts build args: `VERSION`, `COMMIT_SHA`, `SHORT_SHA`, `BUILD_TIMESTAMP`, `GIT_REF`. Devbox is used for local development only (Python 3.13 via nixpkgs), not in container builds.
+The Dockerfile uses `python:3.14-slim` as base, installs dependencies via pipenv (`--system`), and accepts build args: `VERSION`, `COMMIT_SHA`, `SHORT_SHA`, `BUILD_TIMESTAMP`, `GIT_REF`. It also copies `tailscale`/`tailscaled` from the official image (pinned by digest) and installs `socat`; the `CMD` is `entrypoint.sh`, which runs plain `fastapi run` unless `TS_AUTHKEY` is set, in which case it starts userspace Tailscale (`--shields-up`, since userspace mode would otherwise forward inbound tailnet connections to the container's localhost) and a `socat` → `tailscale nc` forward from `127.0.0.1:$PROXMOX_PORT` to `$PROXMOX_HOST` (the Proxmox host's Tailscale IP), then runs the API with `PROXMOX_HOST=127.0.0.1` (no proxy config in the Proxmox client). Devbox is used for local development only (Python 3.13 via nixpkgs), not in container builds.
 
 ## Architecture
 
